@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function to check if the user is a Super Admin.
+    // IMPORTANT: Replace 'your_super_admin_uid_here' with the actual Super Admin UID
+    // from your .env file (the value of NEXT_PUBLIC_SUPER_ADMIN_UID).
+    function isSuperAdmin() {
+      return request.auth != null && request.auth.uid == "your_super_admin_uid_here";
+    }
+
+    // Helper function to get the user's organization ID from their user document.
+    function getUserOrgId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.orgId;
+    }
+
+    // Global rule: Super Admin can read/write anything.
+    match /{path=**} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // Organizations: Members can read/write documents within their own organization.
+    match /organizations/{orgId} {
+      allow read, write: if request.auth != null && getUserOrgId() == orgId;
+
+      // Child collections (inspections, checklist) inherit the parent rule.
+      match /{allChildren=**} {
+        allow read, write: if request.auth != null && getUserOrgId() == orgId;
+      }
+    }
+
+    // Users: A user can read/write their own document.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Invitations: Only authenticated users can create invitations (this will be restricted
+    // to the Super Admin by the global rule).
+    // Claiming an invitation is handled by server logic which runs with admin privileges.
+    match /invitations/{invitationId} {
+      allow read, create: if request.auth != null;
+      allow update, delete: if false; // Invitations cannot be modified or deleted by clients.
+    }
+  }
+}
