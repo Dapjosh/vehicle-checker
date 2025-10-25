@@ -8,19 +8,22 @@ body {
 
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Off-white, derived from #F4F4F4 */
+    --background: 210 20% 98%;
+    /* Off-white, derived from #F4F4F4 */
     --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 211 53% 52%; /* Strong blue #4681C3 */
+    --primary: 211 53% 52%;
+    /* Strong blue #4681C3 */
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 108 44% 52%; /* Green #63B74D */
+    --accent: 108 44% 52%;
+    /* Green #63B74D */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
@@ -57,6 +60,7 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -64,16 +68,28 @@ body {
 
 @media print {
   body {
-    background-color: white;
+    background-color: white !important;
   }
+
   .print-hidden {
     display: none !important;
   }
+
   main {
-    padding: 0;
+    padding: 0 !important;
+    margin: 0 !important;
   }
+
   .printable-card {
-    box-shadow: none;
-    border: none;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .printable-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    display: block !important;
+    max-width: 100% !important;
   }
 }

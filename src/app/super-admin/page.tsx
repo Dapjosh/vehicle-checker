@@ -36,12 +36,10 @@ function CreateOrgForm({ onOrgCreated }: { onOrgCreated: () => void }) {
                 
                 setGeneratedLink(result.signupLink);
                 onOrgCreated(); 
-
                 toast({
                     title: 'Invitation Link Generated',
                     description: 'Share the link below with the new organization admin.',
                 });
-
                 try{
                   const emailResult = await sendOrganizationInviteEmail(userEmail, orgName, result.signupLink);
                   if(emailResult.success){

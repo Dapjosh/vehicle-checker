@@ -1,7 +1,7 @@
 
 'use server';
 
-import { type InspectionCategory, type UserData, type Organization, InspectionItemWithStatus, InspectionReport } from '@/lib/definitions';
+import { type InspectionCategory, type UserData, type Organization, type Vehicle, type Driver, InspectionItemWithStatus, InspectionReport } from '@/lib/definitions';
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +26,32 @@ function slugify(text: string): string {
         .replace(/\s+/g, '-') // Replace spaces with -
         .replace(/[^\w-]+/g, '') // Remove all non-word chars
         .replace(/--+/g, '-'); // Replace multiple - with single -
+}
+
+/**
+ * Formats a driver's name into Title Case.
+ * e.g., "jOhN dOE" -> "John Doe"
+ * @param name The name to format.
+ * @returns The formatted name.
+ */
+function formatDriverName(name: string): string {
+    if (!name) return '';
+    return name
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+/**
+ * Formats a vehicle registration number to uppercase with no spaces or hyphens.
+ * e.g., "abc-123 xy" -> "ABC123XY"
+ * @param registration The registration to format.
+ * @returns The formatted registration.
+ */
+function formatVehicleRegistration(registration: string): string {
+    if (!registration) return '';
+    return registration.replace(/[\s-]+/g, '').toUpperCase();
 }
 
 
@@ -59,6 +85,7 @@ export async function saveInspectionReport(data: Record<string, any>, user: User
         // Prepare the data with a server-side timestamp.
         const firestoreData = {
             vehicleRegistration: data.vehicleRegistration,
+            currentOdometer: data.currentOdometer,
             driverName: data.driverName,
             finalVerdict: data.finalVerdict,
             items: inspectionItems,
@@ -144,7 +171,7 @@ export async function verifyInvitationToken(token: string): Promise<{ success: b
         const tokenRef = adminDb.collection('invitations').doc(token);
         const tokenDoc = await tokenRef.get();
 
-        if (!tokenDoc.exists || tokenDoc.data()?.claimed) {
+        if (!tokenDoc.exists() || tokenDoc.data()?.claimed) {
             return { success: false, error: "This invitation is invalid or has already been claimed." };
         }
 
@@ -284,4 +311,89 @@ export async function getAllOrganizations(): Promise<Organization[]> {
         } as Organization;
     });
 }
+
+// =================================================================================
+// Fleet Management Actions (Drivers & Vehicles)
+// =================================================================================
+
+async function getCollectionData<T>(orgId: string, collectionName: 'drivers' | 'vehicles', orderByField: keyof T & string): Promise<T[]> {
+    if (!orgId) return [];
+
+    const collectionRef = adminDb.collection(`organizations/${orgId}/${collectionName}`);
+    const q = collectionRef.orderBy(orderByField, 'asc');
+    const snapshot = await q.get();
+
+    if (snapshot.empty) return [];
+
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString();
+        return {
+            id: doc.id,
+            ...data,
+            createdAt,
+        } as T;
+    });
+}
+
+export async function getDrivers(orgId: string): Promise<Driver[]> {
+    return getCollectionData<Driver>(orgId, 'drivers', 'name');
+}
+
+export async function getVehicles(orgId: string): Promise<Vehicle[]> {
+    return getCollectionData<Vehicle>(orgId, 'vehicles', 'registration');
+}
+
+async function addFleetItem(orgId: string, collectionName: 'drivers' | 'vehicles', data: { name: string } | { registration: string }): Promise<{ success: boolean; message: string; }> {
+    if (!orgId) {
+        return { success: false, message: "Organization ID is required." };
+    }
+    try {
+        const itemRef = adminDb.collection(`organizations/${orgId}/${collectionName}`).doc();
+        await itemRef.set({
+            ...data,
+            id: itemRef.id,
+            createdAt: FieldValue.serverTimestamp(),
+        });
+        return { success: true, message: `${collectionName.slice(0, -1)} added successfully.` };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error(`Error adding ${collectionName}:`, message);
+        return { success: false, message: `Could not add ${collectionName.slice(0, -1)}.` };
+    }
+}
+
+export async function addDriver(orgId: string, name: string): Promise<{ success: boolean; message: string; }> {
+    const formattedName = formatDriverName(name);
+    return addFleetItem(orgId, 'drivers', { name: formattedName });
+}
+
+export async function addVehicle(orgId: string, registration: string): Promise<{ success: boolean; message: string; }> {
+    const formattedRegistration = formatVehicleRegistration(registration);
+    return addFleetItem(orgId, 'vehicles', { registration: formattedRegistration });
+}
+
+
+async function deleteFleetItem(orgId: string, collectionName: 'drivers' | 'vehicles', itemId: string): Promise<{ success: boolean; message: string; }> {
+    if (!orgId || !itemId) {
+        return { success: false, message: "Organization and item ID are required." };
+    }
+    try {
+        await adminDb.collection(`organizations/${orgId}/${collectionName}`).doc(itemId).delete();
+        return { success: true, message: `${collectionName.slice(0, -1)} deleted successfully.` };
+    } catch (error) {
+        const message = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error(`Error deleting ${collectionName}:`, message);
+        return { success: false, message: `Could not delete ${collectionName.slice(0, -1)}.` };
+    }
+}
+
+export async function deleteDriver(orgId: string, driverId: string): Promise<{ success: boolean; message: string; }> {
+    return deleteFleetItem(orgId, 'drivers', driverId);
+}
+
+export async function deleteVehicle(orgId: string, vehicleId: string): Promise<{ success: boolean; message: string; }> {
+    return deleteFleetItem(orgId, 'vehicles', vehicleId);
+}
+
 

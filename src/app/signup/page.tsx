@@ -14,7 +14,6 @@ import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from '@/lib/firebase';
 import { claimInvitationToken, verifyInvitationToken } from '@/app/actions';
 
-
 function SignupComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();

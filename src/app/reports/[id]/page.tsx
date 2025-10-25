@@ -8,7 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import type { InspectionReport, InspectionCategory, InspectionItemWithStatus } from '@/lib/definitions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowLeft, XCircle, Wrench, CheckCircle, Settings, Printer } from 'lucide-react';
+import { Loader2, ArrowLeft, XCircle, Wrench, CheckCircle, Settings, Printer, Gauge } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { iconMap } from '@/lib/definitions';
@@ -107,7 +107,7 @@ export default function ReportDetailPage() {
         <div className="flex min-h-screen w-full flex-col bg-background">
             <AppHeader className="print-hidden"/>
              <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-                <div className="mx-auto grid w-full max-w-4xl gap-8">
+                <div className="mx-auto grid w-full max-w-4xl gap-8 printable-container">
                     <Card className="printable-card">
                         <CardHeader>
                             <div className="flex flex-col md:flex-row md:justify-between md:items-start">
@@ -116,6 +116,10 @@ export default function ReportDetailPage() {
                                     <CardDescription>
                                         Driven by {report.driverName} on {new Date(report.submittedAt.seconds * 1000).toLocaleDateString()}
                                     </CardDescription>
+                                     <div className="flex items-center pt-2 text-muted-foreground">
+                                        <Gauge className="mr-2 h-5 w-5" />
+                                        <span className="font-medium">{report.currentOdometer?.toLocaleString() || 'N/A'} km</span>
+                                    </div>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <Badge variant={report.finalVerdict === 'PASS' ? 'default' : 'destructive'} className="text-lg py-2 px-6">
@@ -180,3 +184,5 @@ export default function ReportDetailPage() {
         </div>
     );
 }
+
+    

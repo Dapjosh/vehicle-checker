@@ -99,7 +99,7 @@ export default function ReportsPage() {
             const allItems = checklistResult.data.flatMap(category => category.items);
 
             const headers = [
-                'Report ID', 'Vehicle Registration', 'Driver Name', 'Date', 'Final Verdict',
+                'Report ID', 'Vehicle Registration', 'Driver Name', 'Odometer', 'Date', 'Final Verdict',
                 ...allItems.flatMap(item => [`${item.name} - Status`, `${item.name} - Notes`])
             ];
             
@@ -108,6 +108,7 @@ export default function ReportsPage() {
                     'Report ID': report.id,
                     'Vehicle Registration': report.vehicleRegistration,
                     'Driver Name': report.driverName,
+                    'Odometer': report.currentOdometer,
                     'Date': new Date(report.submittedAt.seconds * 1000).toLocaleString(),
                     'Final Verdict': report.finalVerdict,
                 };
@@ -227,6 +228,7 @@ export default function ReportsPage() {
                                         <TableRow>
                                             <TableHead>Vehicle Registration</TableHead>
                                             <TableHead>Driver Name</TableHead>
+                                            <TableHead>Odometer</TableHead>
                                             <TableHead>Date</TableHead>
                                             <TableHead>Verdict</TableHead>
                                             <TableHead className="text-right">Actions</TableHead>
@@ -235,7 +237,7 @@ export default function ReportsPage() {
                                     <TableBody>
                                         {loading ? (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="h-24 text-center">
+                                                <TableCell colSpan={6} className="h-24 text-center">
                                                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
                                                 </TableCell>
                                             </TableRow>
@@ -244,6 +246,7 @@ export default function ReportsPage() {
                                                 <TableRow key={report.id}>
                                                     <TableCell className="font-medium">{report.vehicleRegistration}</TableCell>
                                                     <TableCell>{report.driverName}</TableCell>
+                                                     <TableCell>{report.currentOdometer?.toLocaleString() || 'N/A'}</TableCell>
                                                     <TableCell>{new Date(report.submittedAt.seconds * 1000).toLocaleString()}</TableCell>
                                                     <TableCell>
                                                         <Badge variant={report.finalVerdict === 'PASS' ? 'default' : 'destructive'}>
@@ -261,7 +264,7 @@ export default function ReportsPage() {
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={5} className="h-24 text-center">
+                                                <TableCell colSpan={6} className="h-24 text-center">
                                                     No results found.
                                                 </TableCell>
                                             </TableRow>
@@ -276,3 +279,5 @@ export default function ReportsPage() {
         </div>
     );
 }
+
+    
