@@ -5,7 +5,7 @@ import { useState, useTransition, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, CheckCircle, XCircle, RotateCw, Ban, Wrench, Save } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, RotateCw, Ban, Wrench, Save, AlertTriangle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -16,19 +16,19 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-import { saveInspectionReport } from '@/app/actions';
-import { iconMap, type InspectionCategory } from '@/lib/definitions';
+import { saveInspectionReport, getChecklistAction, getDrivers, getVehicles } from '@/app/actions';
+import { iconMap, type InspectionCategory, type Driver, type Vehicle } from '@/lib/definitions';
 import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { getChecklistAction } from '@/app/actions';
-import { AlertTriangle } from 'lucide-react';
 
 // Schema and default values are now managed inside the component that depends on them
 const generateFormSchema = (categories: InspectionCategory[]) => {
   const schemaFields: Record<string, z.ZodType<any, any, any>> = {
-    vehicleRegistration: z.string().min(1, 'Vehicle registration is required.'),
-    driverName: z.string().min(1, 'Driver name is required.'),
+    vehicleRegistration: z.string().min(1, 'Please select a vehicle.'),
+    currentOdometer: z.coerce.number().min(1, 'Odometer reading is required.'),
+    driverName: z.string().min(1, 'Please select a driver.'),
     finalVerdict: z.enum(['PASS', 'FAIL'], {
       required_error: 'You must select a final verdict.',
     }),
@@ -48,7 +48,7 @@ const generateFormSchema = (categories: InspectionCategory[]) => {
 
 type FormValues = z.infer<ReturnType<typeof generateFormSchema>>;
 
-function InspectionForm({ categories, user }: { categories: InspectionCategory[]; user: NonNullable<ReturnType<typeof useAuth>['user']> }) {
+function InspectionForm({ categories, drivers, vehicles, user }: { categories: InspectionCategory[]; drivers: Driver[], vehicles: Vehicle[], user: NonNullable<ReturnType<typeof useAuth>['user']> }) {
   const [isSaving, startSaveTransition] = useTransition();
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
   
@@ -57,8 +57,9 @@ function InspectionForm({ categories, user }: { categories: InspectionCategory[]
   const formSchema = React.useMemo(() => generateFormSchema(categories), [categories]);
   
   const defaultValues = React.useMemo(() => {
-    const values: Record<string, string | undefined> = {
+    const values: Record<string, string | undefined | number> = {
       vehicleRegistration: '',
+      currentOdometer: '',
       driverName: '',
       finalVerdict: undefined,
     };
@@ -112,27 +113,54 @@ function InspectionForm({ categories, user }: { categories: InspectionCategory[]
               <CardDescription>Enter the vehicle and driver information for this inspection.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 md:grid-cols-2">
-              <FormField
+                <FormField
+                    control={form.control}
+                    name="vehicleRegistration"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Vehicle Registration</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isFormDisabled}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select a vehicle" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {vehicles.map(v => <SelectItem key={v.id} value={v.registration}>{v.registration}</SelectItem>)}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="driverName"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Driver Name</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isFormDisabled}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select a driver" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {drivers.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                <FormField
                 control={form.control}
-                name="vehicleRegistration"
+                name="currentOdometer"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehicle Registration</FormLabel>
+                  <FormItem className="md:col-span-2">
+                    <FormLabel>Current Odometer (km)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., ABC-123" {...field} disabled={isFormDisabled}/>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="driverName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Driver Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., John Doe" {...field} disabled={isFormDisabled}/>
+                      <Input type="number" placeholder="e.g., 125000" {...field} disabled={isFormDisabled}/>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -337,45 +365,54 @@ function InspectionForm({ categories, user }: { categories: InspectionCategory[]
 
 export default function VehicleCheckForm() {
   const { user } = useAuth();
-  const [inspectionCategories, setInspectionCategories] = useState<InspectionCategory[] | null>(null);
-  const [loadingChecklist, setLoadingChecklist] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [categories, setCategories] = useState<InspectionCategory[] | null>(null);
+  const [drivers, setDrivers] = useState<Driver[] | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[] | null>(null);
+  
   const { toast } = useToast();
 
-  const fetchAndSetChecklist = useCallback(async (orgId: string) => {
-    setLoadingChecklist(true);
+  const fetchData = useCallback(async (orgId: string) => {
+    setLoading(true);
     setError(null);
     try {
-        const result = await getChecklistAction(orgId);
-        if (result.success && result.data) {
-            setInspectionCategories(result.data);
+        const [checklistResult, driversResult, vehiclesResult] = await Promise.all([
+            getChecklistAction(orgId),
+            getDrivers(orgId),
+            getVehicles(orgId),
+        ]);
+
+        if (checklistResult.success && checklistResult.data) {
+            setCategories(checklistResult.data);
         } else {
-            const errorMessage = result.error || "An unknown error occurred while loading the checklist.";
-            setError(errorMessage);
-            toast({
-                variant: 'destructive',
-                title: 'Error Loading Checklist',
-                description: errorMessage,
-            });
+            throw new Error(checklistResult.error || "Failed to load checklist.");
         }
+        
+        setDrivers(driversResult);
+        setVehicles(vehiclesResult);
+
     } catch (e) {
         const message = e instanceof Error ? e.message : "An unexpected error occurred.";
         setError(message);
+        toast({ variant: 'destructive', title: 'Error Loading Data', description: message });
     } finally {
-        setLoadingChecklist(false);
+        setLoading(false);
     }
   }, [toast]);
 
   useEffect(() => {
     if (user?.orgId) {
-      fetchAndSetChecklist(user.orgId);
+      fetchData(user.orgId);
     }
-  }, [user, fetchAndSetChecklist]);
+  }, [user, fetchData]);
 
-  if (loadingChecklist) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4">Loading inspection data...</p>
       </div>
     );
   }
@@ -391,7 +428,7 @@ export default function VehicleCheckForm() {
                 <CardDescription>{error}</CardDescription>
             </CardHeader>
             <CardContent>
-                 <Button onClick={() => user?.orgId && fetchAndSetChecklist(user.orgId)}>
+                 <Button onClick={() => user?.orgId && fetchData(user.orgId)}>
                     <RotateCw className="mr-2 h-4 w-4" />
                     Try Again
                 </Button>
@@ -400,8 +437,8 @@ export default function VehicleCheckForm() {
     )
   }
 
-  if (user && inspectionCategories) {
-    return <InspectionForm categories={inspectionCategories} user={{
+  if (user && categories && drivers && vehicles) {
+    return <InspectionForm categories={categories} drivers={drivers} vehicles={vehicles} user={{
         uid: user.uid,
         email: user.email,
         role: user.role,
@@ -412,3 +449,4 @@ export default function VehicleCheckForm() {
 
   return null;
 }
+    
