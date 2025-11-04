@@ -6,7 +6,7 @@ import React, {
   useTransition,
 } from 'react';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
+import { useAuth } from '@clerk/nextjs';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import type {
@@ -63,7 +63,7 @@ const verdicts = [
 ];
 
 export default async function ReportsPage() {
-  const { userId, orgId } = await auth();
+  const { userId, orgId } = useAuth();
   const { toast } = useToast();
   const [reports, setReports] = useState<InspectionReportSummary[]>([]);
   const [loading, setLoading] = useState(true);

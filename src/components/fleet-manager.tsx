@@ -209,8 +209,8 @@ export default function FleetManager({ orgId }: { orgId: string | undefined }) {
     setError(null);
     try {
       const [driversData, vehiclesData] = await Promise.all([
-        getDrivers(orgId || ''),
-        getVehicles(orgId || ''),
+        getDrivers(),
+        getVehicles(),
       ]);
       setDrivers(driversData);
       setVehicles(vehiclesData);
