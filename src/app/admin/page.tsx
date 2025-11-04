@@ -8,8 +8,12 @@ export default async function AdminPage() {
   const { userId, orgId } = await auth();
 
   // The AuthProvider handles loading and redirection for non-admins.
-  if (!userId || !orgId) {
+  if (!userId) {
     redirect('/login');
+  }
+
+  if (!orgId) {
+    redirect('/wait-list');
   }
 
   return (

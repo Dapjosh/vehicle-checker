@@ -25,7 +25,7 @@ export default async function Home() {
   const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
 
   if (!isSuperAdmin && (!orgId || !orgRole)) {
-    redirect('/login');
+    redirect('/wait-list');
   }
 
   let checklistResult, drivers, vehicles;
