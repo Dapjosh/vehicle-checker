@@ -14,8 +14,12 @@ export default async function Page() {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900">
           <img className="w-100" src="/pause-circle.svg" />
         </div>
-        <h1 className="text-xl font-bold">Your account is awaiting approval</h1>
-        <p>Please hold on while we get things sorted for you.</p>
+        <h1 className="text-xl font-bold text-black">
+          Your account is awaiting approval
+        </h1>
+        <p className="text-black">
+          Please hold on while we get things sorted for you.
+        </p>
       </div>
     </div>
   );
