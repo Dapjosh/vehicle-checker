@@ -1,18 +1,17 @@
-
-"use client";
-
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import ChecklistEditor from '@/components/checklist-editor';
-import { useAuth } from '@/hooks/use-auth.tsx';
+
 import AppHeader from '@/components/app-header';
 
-export default function AdminPage() {
-  const { user } = useAuth();
-  
+export default async function AdminPage() {
+  const { userId } = await auth();
+
   // The AuthProvider handles loading and redirection for non-admins.
-  if (!user || user.role !== 'member') {
-    return null; 
+  if (!userId) {
+    redirect('/login');
   }
-  
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <AppHeader />

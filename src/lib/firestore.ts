@@ -11,56 +11,56 @@ import { SUPER_ADMIN_UID } from './config';
  * @returns A UserData object or null if the user document is not found.
  */
 export async function getUserData(uid: string): Promise<UserData | null> {
-    if (!uid) return null;
+  if (!uid) return null;
 
-    if (SUPER_ADMIN_UID && uid === SUPER_ADMIN_UID) {
-        return {
-            uid: SUPER_ADMIN_UID,
-            email: 'super@admin.com', // This can be a placeholder
-            role: 'super_admin',
-            orgId: 'SUPER_ORG',
-            displayName: 'Super Admin',
-        };
+  if (SUPER_ADMIN_UID && uid === SUPER_ADMIN_UID) {
+    return {
+      uid: SUPER_ADMIN_UID,
+      email: 'super@admin.com', // This can be a placeholder
+      role: 'super_admin',
+      orgId: 'SUPER_ORG',
+      displayName: 'Super Admin',
+    };
+  }
+
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      return userSnap.data() as UserData;
     }
-    
-    try {
-        const userRef = doc(db, 'users', uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (userSnap.exists()) {
-            return userSnap.data() as UserData;
-        }
 
-        console.warn(`[getUserData] No user document found for UID: ${uid}. This may be expected during signup.`);
-        return null;
+    console.warn(`[getUserData] No user document found for UID: ${uid}. This may be expected during signup.`);
+    return null;
 
-    } catch (error) {
-        console.error(`[getUserData] Error fetching user document for UID ${uid}:`, error);
-        return null;
-    }
+  } catch (error) {
+    console.error(`[getUserData] Error fetching user document for UID ${uid}:`, error);
+    return null;
+  }
 }
 
 
 export async function getOrgUsers(orgId: string): Promise<UserData[]> {
-    if (orgId === 'SUPER_ORG') {
-        return []; // Super admin org has no other members.
-    }
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('orgId', '==', orgId));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => doc.data() as UserData);
+  if (orgId === 'SUPER_ORG') {
+    return []; // Super admin org has no other members.
+  }
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('orgId', '==', orgId));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => doc.data() as UserData);
 }
 
 
 // Checklist Management
-export async function getChecklist(orgId: string): Promise<InspectionCategory[]> {
+export async function getChecklist(orgId: string, isSuperAdmin: boolean): Promise<InspectionCategory[]> {
   // Super Admins don't have their own checklist; they see the default template.
-  if (orgId === 'SUPER_ORG') {
-      return defaultInspectionCategories;
+  if (isSuperAdmin) {
+    return defaultInspectionCategories;
   }
-  
+
   const checklistRef = doc(db, `organizations/${orgId}/checklist/config`);
-  
+
   try {
     const docSnap = await getDoc(checklistRef);
 
@@ -83,13 +83,13 @@ export async function setChecklist(orgId: string, categories: InspectionCategory
 }
 
 export async function getInspectionReports(orgId: string): Promise<InspectionReport[]> {
-    if (!orgId || orgId === 'SUPER_ORG') {
-        return [];
-    }
-    const reportsRef = collection(db, `organizations/${orgId}/inspections`);
-    const q = query(reportsRef, orderBy('submittedAt', 'desc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InspectionReport));
+  if (!orgId || orgId === 'SUPER_ORG') {
+    return [];
+  }
+  const reportsRef = collection(db, `organizations/${orgId}/inspections`);
+  const q = query(reportsRef, orderBy('submittedAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InspectionReport));
 }
 
 /**

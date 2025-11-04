@@ -134,10 +134,9 @@ export type Status = 'Ok' | 'Needs Repair' | 'not ok';
 export type UserRole = 'member' | 'super_admin';
 
 export interface UserData {
-  uid: string;
-  email: string;
-  role: UserRole;
-  orgId: string;
+  uid?: string;
+  email?: string;
+  role?: string;
   displayName?: string;
   photoURL?: string;
 }

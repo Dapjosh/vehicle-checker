@@ -1,12 +1,18 @@
 
 'use server';
 
+import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
 import { type InspectionCategory, type UserData, type Organization, type Vehicle, type Driver, InspectionItemWithStatus, InspectionReport } from '@/lib/definitions';
+
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { SUPER_ADMIN_UID, NEXT_PUBLIC_BASE_URL } from '@/lib/config';
 import { getChecklist } from '@/lib/firestore';
+import { redirect } from "next/dist/server/api-utils";
+
+
 
 // =================================================================================
 // Helper Functions
@@ -59,13 +65,19 @@ function formatVehicleRegistration(registration: string): string {
 // Inspection Report Actions
 // =================================================================================
 
-export async function saveInspectionReport(data: Record<string, any>, user: UserData, categories: InspectionCategory[]): Promise<{ success: boolean; message: string; }> {
-    if (!user || !user.orgId) {
+export async function saveInspectionReport(data: Record<string, any>, categories: InspectionCategory[]): Promise<{ success: boolean; message: string; }> {
+    const { userId, orgId } = await auth();
+
+    if (!userId || !orgId) {
+        return { success: false, message: "User is not authenticated or does not belong to an organization." };
+    }
+
+    if (!userId || !orgId) {
         return { success: false, message: "User is not authenticated or does not belong to an organization." };
     }
 
     try {
-        const reportRef = adminDb.collection(`organizations/${user.orgId}/inspections`).doc();
+        const reportRef = adminDb.collection(`organizations/${orgId}/inspections`).doc();
 
         const inspectionItems: InspectionItemWithStatus[] = [];
         categories.forEach(category => {
@@ -89,7 +101,7 @@ export async function saveInspectionReport(data: Record<string, any>, user: User
             driverName: data.driverName,
             finalVerdict: data.finalVerdict,
             items: inspectionItems,
-            submittedBy: user.uid,
+            submittedBy: userId,
             submittedAt: FieldValue.serverTimestamp(),
         };
 
@@ -145,12 +157,19 @@ export async function getAllReportsForExport(orgId: string): Promise<{ success: 
 // =================================================================================
 // Checklist Actions
 // =================================================================================
-export async function getChecklistAction(orgId: string): Promise<{ success: boolean; data?: InspectionCategory[]; error?: string; }> {
+export async function getChecklistAction(): Promise<{ success: boolean; data?: InspectionCategory[]; error?: string; }> {
+    const { orgId } = await auth();
+    const user = await currentUser();
+
+    const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
+    if (!orgId) {
+        return { success: false, error: "No organization active." };
+    }
     if (!orgId) {
         return { success: false, error: "Organization ID is required." };
     }
     try {
-        const checklistData = await getChecklist(orgId);
+        const checklistData = await getChecklist(orgId, isSuperAdmin);
         return { success: true, data: checklistData };
     } catch (error) {
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -163,136 +182,184 @@ export async function getChecklistAction(orgId: string): Promise<{ success: bool
 // User and Organization Management Actions
 // =================================================================================
 
-export async function verifyInvitationToken(token: string): Promise<{ success: boolean; email?: string; error?: string; }> {
-    if (!token) {
-        return { success: false, error: "Invitation token is missing." };
-    }
-    try {
-        const tokenRef = adminDb.collection('invitations').doc(token);
-        const tokenDoc = await tokenRef.get();
+// export async function verifyInvitationToken(token: string): Promise<{ success: boolean; email?: string; error?: string; }> {
+//     if (!token) {
+//         return { success: false, error: "Invitation token is missing." };
+//     }
+//     try {
+//         const tokenRef = adminDb.collection('invitations').doc(token);
+//         const tokenDoc = await tokenRef.get();
 
-        if (!tokenDoc.exists() || tokenDoc.data()?.claimed) {
-            return { success: false, error: "This invitation is invalid or has already been claimed." };
-        }
+//         if (!tokenDoc.exists() || tokenDoc.data()?.claimed) {
+//             return { success: false, error: "This invitation is invalid or has already been claimed." };
+//         }
 
-        return { success: true, email: tokenDoc.data()?.email };
-    } catch (e) {
-        console.error("Error verifying invitation token:", e);
-        return { success: false, error: "There was a problem verifying your invitation." };
-    }
-}
-
-
-export async function claimInvitationToken(token: string, uid: string, email: string): Promise<{ success: boolean; error?: string; }> {
-    const batch = adminDb.batch();
-    const invitationRef = adminDb.collection('invitations').doc(token);
+//         return { success: true, email: tokenDoc.data()?.email };
+//     } catch (e) {
+//         console.error("Error verifying invitation token:", e);
+//         return { success: false, error: "There was a problem verifying your invitation." };
+//     }
+// }
 
 
-    try {
-        const invitationDoc = await invitationRef.get();
-
-        if (!invitationDoc.exists) {
-            return { success: false, error: "Invitation not found." };
-        }
-
-        const invitation = invitationDoc.data();
-        if (!invitation || invitation.claimed) {
-            return { success: false, error: "This invitation is invalid or has already been claimed." };
-        }
-
-        if (invitation.email.toLowerCase() !== email.toLowerCase()) {
-            return { success: false, error: "This invitation is for a different email address." };
-        }
-
-        // 1. Create the organization since the user is accepting the invite
-        const orgRef = adminDb.collection('organizations').doc(invitation.orgId);
-        const orgData = {
-            name: invitation.orgName,
-            createdAt: FieldValue.serverTimestamp(),
-            createdBy: uid, // The user who claims the invite creates the org
-        };
-        batch.set(orgRef, orgData);
-
-        // 2. Create the user document
-        const userRef = adminDb.collection('users').doc(uid);
-        const newUser: UserData = {
-            uid,
-            email: invitation.email,
-            orgId: invitation.orgId,
-            role: invitation.role,
-        };
-        batch.set(userRef, newUser);
-
-        // 3. Mark the invitation as claimed
-        batch.update(invitationRef, {
-            claimed: true,
-            claimedAt: FieldValue.serverTimestamp(),
-            claimedBy: uid
-        });
-
-        await batch.commit();
-
-        return { success: true };
-
-    } catch (error) {
-        console.error("Error claiming invitation:", error);
-        return { success: false, error: "An unexpected server error occurred." };
-    }
-}
+// export async function claimInvitationToken(token: string, uid: string, email: string): Promise<{ success: boolean; error?: string; }> {
+//     const batch = adminDb.batch();
+//     const invitationRef = adminDb.collection('invitations').doc(token);
 
 
-export async function createOrganizationAndInvite(orgName: string, userEmail: string, superAdminUid: string): Promise<{ success: boolean; message: string; signupLink?: string; }> {
-    if (superAdminUid !== SUPER_ADMIN_UID) {
+//     try {
+//         const invitationDoc = await invitationRef.get();
+
+//         if (!invitationDoc.exists) {
+//             return { success: false, error: "Invitation not found." };
+//         }
+
+//         const invitation = invitationDoc.data();
+//         if (!invitation || invitation.claimed) {
+//             return { success: false, error: "This invitation is invalid or has already been claimed." };
+//         }
+
+//         if (invitation.email.toLowerCase() !== email.toLowerCase()) {
+//             return { success: false, error: "This invitation is for a different email address." };
+//         }
+
+//         // 1. Create the organization since the user is accepting the invite
+//         const orgRef = adminDb.collection('organizations').doc(invitation.orgId);
+//         const orgData = {
+//             name: invitation.orgName,
+//             createdAt: FieldValue.serverTimestamp(),
+//             createdBy: uid, // The user who claims the invite creates the org
+//         };
+//         batch.set(orgRef, orgData);
+
+//         // 2. Create the user document
+//         const userRef = adminDb.collection('users').doc(uid);
+//         const newUser: UserData = {
+//             uid,
+//             email: invitation.email,
+//             orgId: invitation.orgId,
+//             role: invitation.role,
+//         };
+//         batch.set(userRef, newUser);
+
+//         // 3. Mark the invitation as claimed
+//         batch.update(invitationRef, {
+//             claimed: true,
+//             claimedAt: FieldValue.serverTimestamp(),
+//             claimedBy: uid
+//         });
+
+//         await batch.commit();
+
+//         return { success: true };
+
+//     } catch (error) {
+//         console.error("Error claiming invitation:", error);
+//         return { success: false, error: "An unexpected server error occurred." };
+//     }
+// }
+
+
+export async function createOrganizationAndInvite(orgName: string, userEmail: string): Promise<{ success: boolean; message: string; }> {
+
+    const user = await currentUser();
+
+
+    const { userId } = await auth();
+
+    if (!userId || !user) {
         return { success: false, message: 'Unauthorized action.' };
     }
 
+    if (user?.publicMetadata?.role !== 'super_admin') {
+        return { success: false, message: 'Unauthorized action.' };
+    }
+    if (!orgName || !userEmail) {
+        return { success: false, message: "Organization name and email are required." };
+    }
+
     try {
+        const client = await clerkClient();
         const orgId = slugify(orgName);
+
         if (!orgId) {
             return { success: false, message: "Organization name is invalid." };
         }
 
-        const orgRef = adminDb.collection('organizations').doc(orgId);
-        const existingOrg = await orgRef.get();
-        if (existingOrg.exists) {
-            return { success: false, message: "An organization with this name already exists." };
+        const orgQuery = await adminDb.collection("organizations").where("slug", "==", orgId).limit(1).get();
+
+        if (!orgQuery.empty) {
+            return {
+                success: false,
+                message: `An organization named "${orgName}" already exists.`
+            };
         }
 
-        const usersRef = adminDb.collection('users');
-        const q = usersRef.where("email", "==", userEmail);
-        const existingUserSnapshot = await q.get();
 
-        if (!existingUserSnapshot.empty) {
-            return { success: false, message: "A user with this email already exists." };
+        const newClerkOrg = await client.organizations.createOrganization({
+            name: orgName,
+            slug: orgId,
+        });
+
+        const emailAddress = userEmail.toLowerCase();
+        const organizationId = newClerkOrg.id;
+        const role = 'org:admin';
+        const redirectUrl = 'https://fleetcheckr.com/admin';
+        const inviterUserId = userId;
+
+        try {
+            await client.organizations.createOrganizationMembership({
+                organizationId: organizationId,
+                userId: inviterUserId,
+                role: 'org:admin',
+            });
+        } catch (error) {
+            console.error("Failed to add superadmin to organization:", error);
+            throw new Error("Could not initialize organization membership for admin.");
         }
 
-        // Create an invitation for the new user, but DO NOT create the org yet.
-        const invitationToken = uuidv4();
-        const invitationRef = adminDb.collection('invitations').doc(invitationToken);
-        const invitationData = {
-            email: userEmail,
-            role: 'member',
-            orgId: orgId,
-            orgName: orgName,
-            invitedBy: superAdminUid,
+        const invitation = await client.organizations.createOrganizationInvitation({
+            organizationId,
+            inviterUserId,
+            emailAddress,
+            role,
+            redirectUrl
+        });
+
+
+        const orgRef = adminDb.collection('organizations').doc(newClerkOrg.id).set({
+            clerkOrgId: newClerkOrg.id,
+            name: newClerkOrg.name,
+            slug: newClerkOrg.slug,
+            plan: 'free',
+            createdBy: userId,
             createdAt: FieldValue.serverTimestamp(),
-            claimed: false,
-        };
-        await invitationRef.set(invitationData);
+        });
 
-        // Generate signup link and return it
-        const signupLink = `${NEXT_PUBLIC_BASE_URL || ''}/signup?token=${invitationToken}`;
+        revalidatePath("/super-admin/");
+        return { success: true, message: "Organization created successfully." };
 
-        return { success: true, message: `Invitation link generated for ${userEmail}.`, signupLink };
 
     } catch (error) {
         console.error("Error creating invitation:", error);
+        if (error && typeof error === 'object' && 'errors' in error) {
+            const errWithErrors = error as { errors?: unknown };
+            console.error('Clerk API specific errors:', JSON.stringify(errWithErrors.errors, null, 2));
+        }
         return { success: false, message: 'An unexpected error occurred.' };
     }
 }
 
 
 export async function getAllOrganizations(): Promise<Organization[]> {
+
+    const user = await currentUser();
+    const { userId } = await auth();
+
+    if (!userId || user?.publicMetadata?.role !== 'super_admin') {
+
+        throw new Error("You are not authorized to perform this action.");
+    }
     const orgsRef = adminDb.collection('organizations');
     const q = orgsRef.orderBy('createdAt', 'desc');
     const snapshot = await q.get();
@@ -305,7 +372,7 @@ export async function getAllOrganizations(): Promise<Organization[]> {
         const data = doc.data();
         const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString();
         return {
-            id: doc.id,
+            id: data.clerkOrgId || doc.id,
             name: data.name,
             createdAt: createdAt,
         } as Organization;
@@ -336,15 +403,20 @@ async function getCollectionData<T>(orgId: string, collectionName: 'drivers' | '
     });
 }
 
-export async function getDrivers(orgId: string): Promise<Driver[]> {
+export async function getDrivers(): Promise<Driver[]> {
+    const { orgId } = await auth(); // Get orgId securely
+    if (!orgId) return [];
     return getCollectionData<Driver>(orgId, 'drivers', 'name');
 }
 
-export async function getVehicles(orgId: string): Promise<Vehicle[]> {
+export async function getVehicles(): Promise<Vehicle[]> {
+    const { orgId } = await auth(); // Get orgId securely
+    if (!orgId) return [];
     return getCollectionData<Vehicle>(orgId, 'vehicles', 'registration');
 }
 
-async function addFleetItem(orgId: string, collectionName: 'drivers' | 'vehicles', data: { name: string } | { registration: string }): Promise<{ success: boolean; message: string; }> {
+async function addFleetItem(collectionName: 'drivers' | 'vehicles', data: { name: string } | { registration: string }): Promise<{ success: boolean; message: string; }> {
+    const { orgId } = await auth(); // Get orgId securely
     if (!orgId) {
         return { success: false, message: "Organization ID is required." };
     }
@@ -363,18 +435,19 @@ async function addFleetItem(orgId: string, collectionName: 'drivers' | 'vehicles
     }
 }
 
-export async function addDriver(orgId: string, name: string): Promise<{ success: boolean; message: string; }> {
+export async function addDriver(name: string): Promise<{ success: boolean; message: string; }> {
     const formattedName = formatDriverName(name);
-    return addFleetItem(orgId, 'drivers', { name: formattedName });
+    return addFleetItem('drivers', { name: formattedName });
 }
 
-export async function addVehicle(orgId: string, registration: string): Promise<{ success: boolean; message: string; }> {
+export async function addVehicle(registration: string): Promise<{ success: boolean; message: string; }> {
     const formattedRegistration = formatVehicleRegistration(registration);
-    return addFleetItem(orgId, 'vehicles', { registration: formattedRegistration });
+    return addFleetItem('vehicles', { registration: formattedRegistration });
 }
 
 
-async function deleteFleetItem(orgId: string, collectionName: 'drivers' | 'vehicles', itemId: string): Promise<{ success: boolean; message: string; }> {
+async function deleteFleetItem(collectionName: 'drivers' | 'vehicles', itemId: string): Promise<{ success: boolean; message: string; }> {
+    const { orgId } = await auth();
     if (!orgId || !itemId) {
         return { success: false, message: "Organization and item ID are required." };
     }
@@ -388,12 +461,19 @@ async function deleteFleetItem(orgId: string, collectionName: 'drivers' | 'vehic
     }
 }
 
-export async function deleteDriver(orgId: string, driverId: string): Promise<{ success: boolean; message: string; }> {
-    return deleteFleetItem(orgId, 'drivers', driverId);
+export async function deleteDriver(driverId: string): Promise<{ success: boolean; message: string; }> {
+    if (!driverId) {
+        return { success: false, message: "Organization and driver ID are required." };
+    }
+    return deleteFleetItem('drivers', driverId);
 }
 
-export async function deleteVehicle(orgId: string, vehicleId: string): Promise<{ success: boolean; message: string; }> {
-    return deleteFleetItem(orgId, 'vehicles', vehicleId);
+export async function deleteVehicle(vehicleId: string): Promise<{ success: boolean; message: string; }> {
+
+    if (!vehicleId) {
+        return { success: false, message: "Organization and vehicle ID are required." };
+    }
+    return deleteFleetItem('vehicles', vehicleId);
 }
 
 
