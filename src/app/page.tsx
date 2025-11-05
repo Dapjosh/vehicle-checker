@@ -29,7 +29,7 @@ export default async function Home() {
       getVehicles(),
     ]);
     if (!checklistResult.success || !checklistResult.data) {
-      return <DataErrorCard error={checklistResult.error} />;
+      pageContent = <DataErrorCard error={checklistResult.error} />;
     } else {
       pageContent = (
         <>
