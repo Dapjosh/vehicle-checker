@@ -19,6 +19,8 @@ export default async function Home() {
     redirect('/wait-list');
   }
 
+  let pageContent: React.ReactNode;
+
   let checklistResult, drivers, vehicles;
   try {
     [checklistResult, drivers, vehicles] = await Promise.all([
@@ -26,28 +28,17 @@ export default async function Home() {
       getDrivers(),
       getVehicles(),
     ]);
-  } catch (e: any) {
-    // Handle generic fetch error
-    return <DataErrorCard error={e.message} />;
-  }
-
-  // 4. Check for checklist-specific error
-  if (!checklistResult.success || !checklistResult.data) {
-    return <DataErrorCard error={checklistResult.error} />;
-  }
-
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader />
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="mx-auto grid w-full max-w-4xl gap-4">
+    if (!checklistResult.success || !checklistResult.data) {
+      return <DataErrorCard error={checklistResult.error} />;
+    } else {
+      pageContent = (
+        <>
           <div>
             <h2 className="text-3xl font-bold tracking-tight">
               Inspection Checklist
             </h2>
             <p className="text-muted-foreground">
-              Complete the checklist below to save an inspection report for your
-              vehicle.
+              Complete the checklist below to save an inspection report.
             </p>
           </div>
           <div className="w-full">
@@ -57,7 +48,21 @@ export default async function Home() {
               vehicles={vehicles}
             />
           </div>
-        </div>
+        </>
+      );
+    }
+  } catch (e: any) {
+    // Handle generic fetch error
+    pageContent = <DataErrorCard error={e.message} />;
+  }
+
+  // 4. Check for checklist-specific error
+
+  return (
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <AppHeader />
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="mx-auto grid w-full max-w-4xl gap-4">{pageContent}</div>
       </main>
     </div>
   );
