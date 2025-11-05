@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import ChecklistEditor from '@/components/checklist-editor';
 
@@ -6,6 +6,7 @@ import AppHeader from '@/components/app-header';
 
 export default async function AdminPage() {
   const { userId, orgId } = await auth();
+  const client = await clerkClient();
 
   // The AuthProvider handles loading and redirection for non-admins.
   if (!userId) {
@@ -13,7 +14,16 @@ export default async function AdminPage() {
   }
 
   if (!orgId) {
-    redirect('/wait-list');
+    const memberships = await client.users.getOrganizationMembershipList({
+      userId: userId,
+    });
+
+    if (memberships.data.length === 0) {
+      redirect('/wait-list');
+    }
+    const firstOrgId = memberships.data[0].organization.id;
+
+    redirect(`/set-org?orgId=${firstOrgId}`);
   }
 
   return (

@@ -1,4 +1,4 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import VehicleCheckForm from '@/components/vehicle-check-form';
 import AppHeader from '@/components/app-header';
 import { redirect } from 'next/navigation';
@@ -7,10 +7,24 @@ import { DataErrorCard } from '@/components/ui/data-error-card';
 
 export default async function Home() {
   const { userId, orgId, orgRole } = await auth();
+  const client = await clerkClient();
   const user = await currentUser();
 
   if (!userId || !user) {
     redirect('/login');
+  }
+
+  if (!orgId) {
+    const memberships = await client.users.getOrganizationMembershipList({
+      userId: userId,
+    });
+
+    if (memberships.data.length === 0) {
+      redirect('/wait-list');
+    }
+    const firstOrgId = memberships.data[0].organization.id;
+
+    redirect(`/set-org?orgId=${firstOrgId}`);
   }
 
   const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
