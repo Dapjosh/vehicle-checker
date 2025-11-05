@@ -354,10 +354,12 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
             slug: orgId,
         });
 
+
+
         const emailAddress = userEmail.toLowerCase();
         const organizationId = newClerkOrg.id;
         const role = 'org:admin';
-        const redirectUrl = 'https://fleetcheckr.com/admin';
+        const redirectUrl = process.env.NEXT_PUBLIC_CLERK_REDIRECT_URL;
         const inviterUserId = userId;
 
         try {
@@ -427,6 +429,7 @@ export async function getAllOrganizations(): Promise<Organization[]> {
         return {
             id: data.clerkOrgId || doc.id,
             name: data.name,
+            slug: data.slug,
             createdAt: createdAt,
         } as Organization;
     });
