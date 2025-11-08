@@ -7,8 +7,8 @@ export default function SignInPage() {
         path="/login"
         routing="path"
         signUpUrl="/signup"
-        forceRedirectUrl="/wait-list"
-        fallbackRedirectUrl="/wait-list"
+        forceRedirectUrl="/"
+        fallbackRedirectUrl="/"
       />
     </div>
   );
