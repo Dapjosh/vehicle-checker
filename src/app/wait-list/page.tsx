@@ -5,7 +5,7 @@ export default async function Page() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect('/login');
+    redirect('/sign-in');
   }
   return (
     // This will center the sign-up form on the page

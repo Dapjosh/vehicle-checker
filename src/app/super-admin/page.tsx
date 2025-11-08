@@ -8,7 +8,7 @@ export default async function SuperAdminPage() {
   const user = await currentUser();
 
   if (!userId || !user) {
-    redirect('/login');
+    redirect('/sign-in');
   }
 
   if (user?.publicMetadata?.role !== 'super_admin') {

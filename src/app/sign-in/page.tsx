@@ -4,9 +4,9 @@ export default function SignInPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-200 p-4">
       <SignIn
-        path="/login"
+        path="/sign-in"
         routing="path"
-        signUpUrl="/signup"
+        signUpUrl="/sign-up"
         forceRedirectUrl="/"
         fallbackRedirectUrl="/"
       />

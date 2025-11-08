@@ -9,7 +9,7 @@ export default async function FleetPage() {
   const client = await clerkClient();
 
   if (!userId || !user) {
-    redirect('/login');
+    redirect('/sign-in');
   }
 
   if (!orgId) {

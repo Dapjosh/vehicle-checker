@@ -10,7 +10,7 @@ export default async function AdminPage() {
 
   // The AuthProvider handles loading and redirection for non-admins.
   if (!userId) {
-    redirect('/login');
+    redirect('/sign-in');
   }
 
   if (!orgId) {

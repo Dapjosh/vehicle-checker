@@ -52,7 +52,7 @@ export default async function ReportDetailPage({
   const user = await currentUser();
 
   if (!userId || !user) {
-    redirect('/login');
+    redirect('/sign-in');
   }
 
   if (!orgId) {

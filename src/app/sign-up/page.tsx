@@ -5,9 +5,9 @@ export default function SignUpPage() {
     // This will center the sign-up form on the page
     <div className="flex min-h-screen items-center justify-center bg-gray-200 p-4">
       <SignUp
-        path="/signup"
+        path="/sign-up"
         routing="path"
-        signInUrl="/login"
+        signInUrl="/sign-in"
         fallbackRedirectUrl="/"
       />
     </div>
