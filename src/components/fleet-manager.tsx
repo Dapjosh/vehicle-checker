@@ -209,8 +209,8 @@ export default function FleetManager({ orgId }: { orgId: string | undefined }) {
     setError(null);
     try {
       const [driversData, vehiclesData] = await Promise.all([
-        getDrivers(orgId || ''),
-        getVehicles(orgId || ''),
+        getDrivers(),
+        getVehicles(),
       ]);
       setDrivers(driversData);
       setVehicles(vehiclesData);
@@ -234,7 +234,7 @@ export default function FleetManager({ orgId }: { orgId: string | undefined }) {
 
   const handleAddItem = async (type: 'driver' | 'vehicle', value: string) => {
     const action = type === 'driver' ? addDriver : addVehicle;
-    const result = await action(orgId || '', value);
+    const result = await action(value);
     if (result.success) {
       toast({ title: 'Success', description: result.message });
       fetchData();
@@ -253,7 +253,7 @@ export default function FleetManager({ orgId }: { orgId: string | undefined }) {
     startDeleteTransition(async () => {
       const { type, data } = itemToDelete;
       const action = type === 'driver' ? deleteDriver : deleteVehicle;
-      const result = await action(orgId || '', data.id);
+      const result = await action(data.id);
 
       if (result.success) {
         toast({ title: 'Success', description: result.message });

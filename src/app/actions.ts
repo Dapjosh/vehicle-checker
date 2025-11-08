@@ -3,7 +3,7 @@
 
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { type InspectionCategory, type UserData, type Organization, type Vehicle, type Driver, InspectionItemWithStatus, InspectionReport } from '@/lib/definitions';
+import { type InspectionCategory, InspectionReportSummary, type UserData, type Organization, type Vehicle, type Driver, InspectionItemWithStatus, InspectionReport } from '@/lib/definitions';
 
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -65,6 +65,29 @@ function formatVehicleRegistration(registration: string): string {
 // Inspection Report Actions
 // =================================================================================
 
+export async function getReports(): Promise<InspectionReportSummary[]> {
+    const { orgId } = await auth(); // Get orgId securely
+    if (!orgId) {
+        return [];
+    }
+
+    try {
+        const reportsRef = adminDb.collection(`organizations/${orgId}/inspections`);
+        const q = reportsRef.orderBy('submittedAt', 'desc');
+        const snapshot = await q.get();
+
+        return snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        } as InspectionReportSummary));
+    } catch (error) {
+        console.error("Error fetching reports:", error);
+        return [];
+    }
+}
+
+
+
 export async function saveInspectionReport(data: Record<string, any>, categories: InspectionCategory[]): Promise<{ success: boolean; message: string; }> {
     const { userId, orgId } = await auth();
 
@@ -119,9 +142,10 @@ export async function saveInspectionReport(data: Record<string, any>, categories
     }
 }
 
-export async function getAllReportsForExport(orgId: string): Promise<{ success: boolean; data?: InspectionReport[]; error?: string; }> {
+export async function getAllReportsForExport(): Promise<{ success: boolean; data?: InspectionReport[]; error?: string; }> {
+    const { orgId } = await auth(); // Get orgId securely
     if (!orgId) {
-        return { success: false, error: "Organization ID is required." };
+        return { success: false, error: "No organization found." };
     }
     try {
         const reportsRef = adminDb.collection(`organizations/${orgId}/inspections`);
@@ -150,6 +174,35 @@ export async function getAllReportsForExport(orgId: string): Promise<{ success: 
         const message = error instanceof Error ? error.message : "An unknown error occurred.";
         console.error(`Error fetching all reports for org ${orgId}:`, message);
         return { success: false, error: "Could not load reports for export." };
+    }
+}
+
+export async function getReportDetails(reportId: string): Promise<{
+    success: boolean;
+    data?: InspectionReport;
+    error?: string;
+}> {
+    const { orgId } = await auth(); // Gets orgId securely
+    if (!orgId) {
+        return { success: false, error: 'User is not authenticated.' };
+    }
+
+    try {
+        const reportRef = adminDb
+            .collection(`organizations/${orgId}/inspections`)
+            .doc(reportId);
+
+        const docSnap = await reportRef.get();
+
+        if (!docSnap.exists) {
+            return { success: false, error: 'Report not found.' };
+        }
+
+        const report = { id: docSnap.id, ...docSnap.data() } as InspectionReport;
+        return { success: true, data: report };
+
+    } catch (error: any) {
+        return { success: false, error: error.message };
     }
 }
 
@@ -301,10 +354,12 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
             slug: orgId,
         });
 
+
+
         const emailAddress = userEmail.toLowerCase();
         const organizationId = newClerkOrg.id;
         const role = 'org:admin';
-        const redirectUrl = 'https://fleetcheckr.com/admin';
+        const redirectUrl = process.env.NEXT_PUBLIC_CLERK_REDIRECT_URL;
         const inviterUserId = userId;
 
         try {
@@ -374,6 +429,7 @@ export async function getAllOrganizations(): Promise<Organization[]> {
         return {
             id: data.clerkOrgId || doc.id,
             name: data.name,
+            slug: data.slug,
             createdAt: createdAt,
         } as Organization;
     });

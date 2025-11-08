@@ -1,32 +1,39 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import VehicleCheckForm from '@/components/vehicle-check-form';
 import AppHeader from '@/components/app-header';
 import { redirect } from 'next/navigation';
 import { getChecklistAction, getDrivers, getVehicles } from '@/app/actions';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
-
-import { AlertTriangle, RotateCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { DataErrorCard } from '@/components/ui/data-error-card';
 
 export default async function Home() {
   const { userId, orgId, orgRole } = await auth();
+  const client = await clerkClient();
   const user = await currentUser();
 
   if (!userId || !user) {
     redirect('/login');
   }
 
+  if (!orgId) {
+    const memberships = await client.users.getOrganizationMembershipList({
+      userId: userId,
+    });
+
+    if (memberships.data.length === 0) {
+      redirect('/wait-list');
+    }
+    const firstOrgId = memberships.data[0].organization.id;
+
+    redirect(`/set-org?orgId=${firstOrgId}`);
+  }
+
   const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
 
   if (!isSuperAdmin && (!orgId || !orgRole)) {
-    redirect('/select-organization');
+    redirect('/wait-list');
   }
+
+  let pageContent: React.ReactNode;
 
   let checklistResult, drivers, vehicles;
   try {
@@ -35,28 +42,17 @@ export default async function Home() {
       getDrivers(),
       getVehicles(),
     ]);
-  } catch (e: any) {
-    // Handle generic fetch error
-    return <DataErrorCard error={e.message} />;
-  }
-
-  // 4. Check for checklist-specific error
-  if (!checklistResult.success || !checklistResult.data) {
-    return <DataErrorCard error={checklistResult.error} />;
-  }
-
-  return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader />
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="mx-auto grid w-full max-w-4xl gap-4">
+    if (!checklistResult.success || !checklistResult.data) {
+      pageContent = <DataErrorCard error={checklistResult.error} />;
+    } else {
+      pageContent = (
+        <>
           <div>
             <h2 className="text-3xl font-bold tracking-tight">
               Inspection Checklist
             </h2>
             <p className="text-muted-foreground">
-              Complete the checklist below to save an inspection report for your
-              vehicle.
+              Complete the checklist below to save an inspection report.
             </p>
           </div>
           <div className="w-full">
@@ -66,32 +62,22 @@ export default async function Home() {
               vehicles={vehicles}
             />
           </div>
-        </div>
-      </main>
-    </div>
-  );
-}
+        </>
+      );
+    }
+  } catch (e: any) {
+    // Handle generic fetch error
+    pageContent = <DataErrorCard error={e.message} />;
+  }
 
-function DataErrorCard({ error }: { error?: string }) {
+  // 4. Check for checklist-specific error
+
   return (
-    <div className="flex justify-center items-center p-8">
-      <Card className="text-center py-12">
-        <CardHeader>
-          <CardTitle className="flex justify-center items-center gap-2 text-destructive">
-            <AlertTriangle />
-            Failed to Load Inspection Data
-          </CardTitle>
-          <CardDescription>
-            {error || 'An unknown error occurred.'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => window.location.reload()}>
-            <RotateCw className="mr-2 h-4 w-4" />
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="flex min-h-screen w-full flex-col bg-background">
+      <AppHeader />
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        <div className="mx-auto grid w-full max-w-4xl gap-4">{pageContent}</div>
+      </main>
     </div>
   );
 }

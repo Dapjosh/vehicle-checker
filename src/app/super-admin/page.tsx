@@ -7,7 +7,7 @@ export default async function SuperAdminPage() {
   const { userId } = await auth();
   const user = await currentUser();
 
-  if (!userId) {
+  if (!userId || !user) {
     redirect('/login');
   }
 

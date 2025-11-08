@@ -245,7 +245,7 @@ export default function SuperAdminClientPage({
                       <div>
                         <p className="font-medium">{org.name}</p>
                         <p className="text-sm text-muted-foreground">
-                          ID: {org.id}
+                          ID: {org.slug}
                         </p>
                       </div>
                     </div>
