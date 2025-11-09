@@ -378,7 +378,6 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
             inviterUserId,
             emailAddress,
             role,
-            redirectUrl
         });
 
 
