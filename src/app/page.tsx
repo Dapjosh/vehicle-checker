@@ -10,13 +10,9 @@ export default async function Home() {
   const client = await clerkClient();
   const user = await currentUser();
 
-  if (!userId || !user) {
-    redirect('/sign-in');
-  }
-
   if (!orgId) {
     const memberships = await client.users.getOrganizationMembershipList({
-      userId: userId,
+      userId: userId!,
     });
 
     if (memberships.data.length === 0) {
