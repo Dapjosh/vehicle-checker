@@ -14,6 +14,8 @@ export default function AcceptInvitePage() {
   useEffect(() => {
     const ticket = searchParams.get('__clerk_ticket');
 
+    console.log('AcceptInviteClient: ticket=', ticket);
+
     // If no ticket, this isn't an invite flow. Go home.
     if (!ticket) {
       router.push('/');
