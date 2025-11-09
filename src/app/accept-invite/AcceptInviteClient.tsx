@@ -38,7 +38,7 @@ export default function AcceptInvitePage() {
     // }
 
     redirectToSignIn({
-      afterSignInUrl: '/', // Where to go after the ticket is redeemed
+      signInFallbackRedirectUrl: `${window.location.origin}/sign-in?__clerk_ticket=${ticket}`, // Where to go if the user isn't signed in.SignInUrl: '/', // Where to go after the ticket is redeemed
       // We manually append the ticket to ensure it's not lost
       redirectUrl: `${window.location.origin}/sign-in?__clerk_ticket=${ticket}`,
     });
