@@ -359,7 +359,7 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
         const emailAddress = userEmail.toLowerCase();
         const organizationId = newClerkOrg.id;
         const role = 'org:admin';
-        const redirectUrl = process.env.NEXT_PUBLIC_CLERK_REDIRECT_URL;
+        const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/accept-invite`;
         const inviterUserId = userId;
 
         try {
@@ -378,6 +378,7 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
             inviterUserId,
             emailAddress,
             role,
+            redirectUrl,
         });
 
 
