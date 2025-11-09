@@ -29,7 +29,7 @@ export default function AcceptInvitePage() {
     <div className="flex h-screen w-full items-center justify-center bg-gray-200 p-4">
       <div className="flex-col space-y-4 justify-center items-center shadow-sm bg-white rounded-md p-4 max-w-md">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Accepting invitation...</span>
+        <span className="ml-2 text-black">Accepting invitation...</span>
       </div>
     </div>
   );
