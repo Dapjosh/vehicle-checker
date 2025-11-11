@@ -60,9 +60,9 @@ export default async function ReportDetailPage({
   }
 
   const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
-  const isOrgMember = orgRole === 'member' || orgRole === 'admin';
+  const isOrgAdmin = orgRole === 'org:admin';
 
-  if (!isSuperAdmin && !isOrgMember) {
+  if (!isSuperAdmin && !isOrgAdmin) {
     redirect('/');
   }
 

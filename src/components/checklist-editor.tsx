@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useTransition } from 'react';
 import { Plus, Pencil, Trash2, GripVertical, Loader2 } from 'lucide-react';
 import {
   type InspectionCategory,
@@ -60,7 +60,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { getChecklist, setChecklist } from '@/lib/firestore';
+import {
+  getChecklistAction,
+  saveChecklistAction,
+} from '@/app/admin/checklist-actions';
+
+import { useToast } from '@/hooks/use-toast';
 
 // Sortable wrapper for checklist items
 function SortableItem({
@@ -174,7 +179,7 @@ function SortableCategory({
   );
 }
 
-export default function ChecklistEditor({ orgId }: { orgId: string }) {
+export default function ChecklistEditor() {
   const [categories, setCategories] = useState<InspectionCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] =
@@ -184,25 +189,28 @@ export default function ChecklistEditor({ orgId }: { orgId: string }) {
     item: InspectionItem;
   } | null>(null);
 
+  const [isSaving, startSaveTransition] = useTransition();
+  const { toast } = useToast();
+
   const fetchAndSetChecklist = useCallback(async () => {
     setLoading(true);
-    const checklist = await getChecklist(orgId);
-    setCategories(checklist);
+    try {
+      const checklist = await getChecklistAction();
+      setCategories(checklist);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to load checklist',
+        description: error.message,
+      });
+    }
+
     setLoading(false);
-  }, [orgId]);
+  }, [toast]);
 
   useEffect(() => {
     fetchAndSetChecklist();
   }, [fetchAndSetChecklist]);
-
-  // Save to Firestore on change
-  useEffect(() => {
-    if (!loading && categories.length > 0) {
-      setChecklist(orgId, categories).catch((e) =>
-        console.error('Failed to save checklist:', e)
-      );
-    }
-  }, [categories, orgId, loading]);
 
   const updateCategories = (
     newCategories:
@@ -215,6 +223,24 @@ export default function ChecklistEditor({ orgId }: { orgId: string }) {
           ? newCategories(prev)
           : newCategories;
       return updated;
+    });
+  };
+
+  const handleSaveChecklist = () => {
+    startSaveTransition(async () => {
+      const result = await saveChecklistAction(categories);
+      if (result.success) {
+        toast({
+          title: 'Checklist Saved!',
+          description: 'Your changes have been saved successfully.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Save Failed',
+          description: result.error || 'Could not save checklist.',
+        });
+      }
     });
   };
 
@@ -365,11 +391,21 @@ export default function ChecklistEditor({ orgId }: { orgId: string }) {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Checklist Editor</CardTitle>
-          <CardDescription>
-            Add, edit, or remove categories and inspection items. Drag and drop
-            to reorder. Changes are saved for your organization.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Checklist Editor</CardTitle>
+              <CardDescription>
+                Add, edit, or remove categories and inspection items. Drag and
+                drop to reorder. Changes are saved for your organization.
+              </CardDescription>
+            </div>
+            <Button onClick={handleSaveChecklist} disabled={isSaving}>
+              {isSaving ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Save Changes
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <DndContext

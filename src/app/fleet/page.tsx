@@ -25,9 +25,9 @@ export default async function FleetPage() {
     redirect(`/set-org?orgId=${firstOrgId}`);
   }
   const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
-  const isOrgMember = orgRole === 'member' || orgRole === 'admin';
+  const isOrgAdmin = orgRole === 'org:admin';
 
-  if (!isSuperAdmin && !isOrgMember) {
+  if (!isSuperAdmin && !isOrgAdmin) {
     // If not, send them to the dashboard
     redirect('/');
   }

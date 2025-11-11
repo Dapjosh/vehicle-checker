@@ -1,15 +1,16 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import ChecklistEditor from '@/components/checklist-editor';
 
 import AppHeader from '@/components/app-header';
 
 export default async function AdminPage() {
-  const { userId, orgId } = await auth();
+  const user = await currentUser();
+  const { userId, orgId, orgRole } = await auth();
   const client = await clerkClient();
 
   // The AuthProvider handles loading and redirection for non-admins.
-  if (!userId) {
+  if (!userId || !user) {
     redirect('/sign-in');
   }
 
@@ -26,12 +27,20 @@ export default async function AdminPage() {
     redirect(`/set-org?orgId=${firstOrgId}`);
   }
 
+  const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
+  const isOrgAdmin = orgRole === 'org:admin';
+
+  if (!isSuperAdmin && !isOrgAdmin) {
+    // If not, send them to the dashboard
+    redirect('/');
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <AppHeader />
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="mx-auto grid w-full max-w-4xl gap-8">
-          <ChecklistEditor orgId={orgId} />
+          <ChecklistEditor />
         </div>
       </main>
     </div>

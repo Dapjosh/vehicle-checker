@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { getChecklistAction, getDrivers, getVehicles } from '@/app/actions';
 import { DataErrorCard } from '@/components/ui/data-error-card';
 
-export default async function Home() {
+export default async function AddNewReports() {
   const { userId, orgId, orgRole } = await auth();
   const client = await clerkClient();
   const user = await currentUser();

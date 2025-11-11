@@ -1,14 +1,14 @@
 
-import {initializeApp, getApp, getApps, cert} from 'firebase-admin/app';
-import {getFirestore} from 'firebase-admin/firestore';
-import {getAuth} from 'firebase-admin/auth';
-import {serverConfig} from './config';
-import type {App} from 'firebase-admin/app';
+import { initializeApp, getApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import { serverConfig } from './config';
+import type { App } from 'firebase-admin/app';
 
 let app: App;
 
 if (!getApps().length) {
-  const {projectId, clientEmail, privateKey} = serverConfig;
+  const { projectId, clientEmail, privateKey } = serverConfig;
 
   if (!projectId || !clientEmail || !privateKey) {
     throw new Error(
@@ -24,7 +24,7 @@ if (!getApps().length) {
         privateKey,
       }),
       // Explicitly specify the database URL to connect to the correct instance
-      databaseURL: `https://${projectId}.firebaseio.com`,
+      // databaseURL: `https://${projectId}.firebaseio.com`,
     });
   } catch (error: any) {
     console.error('Firebase admin initialization error:', error);
@@ -39,4 +39,4 @@ if (!getApps().length) {
 const adminDb = getFirestore(app, 'vehiclecheck-db');
 const adminAuth = getAuth(app);
 
-export {adminDb, adminAuth};
+export { adminDb, adminAuth };

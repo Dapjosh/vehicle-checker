@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc, collection, query, getDocs, where, orderBy, Timestamp, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { adminDb } from './firebase-admin';
 import type { UserData, InspectionCategory, Organization, InspectionReport } from './definitions';
 import { defaultInspectionCategories } from './definitions';
 import { SUPER_ADMIN_UID } from './config';
@@ -45,9 +45,9 @@ export async function getOrgUsers(orgId: string): Promise<UserData[]> {
   if (orgId === 'SUPER_ORG') {
     return []; // Super admin org has no other members.
   }
-  const usersRef = collection(db, 'users');
-  const q = query(usersRef, where('orgId', '==', orgId));
-  const querySnapshot = await getDocs(q);
+  const usersRef = adminDb.collection('users');
+  const q = usersRef.where('orgId', '==', orgId);
+  const querySnapshot = await q.get();
   return querySnapshot.docs.map(doc => doc.data() as UserData);
 }
 
@@ -59,13 +59,15 @@ export async function getChecklist(orgId: string, isSuperAdmin?: boolean): Promi
     return defaultInspectionCategories;
   }
 
-  const checklistRef = doc(db, `organizations/${orgId}/checklist/config`);
-
   try {
-    const docSnap = await getDoc(checklistRef);
+    const checklistRef = adminDb.doc(`organizations/${orgId}/checklist/config`);
+    const docSnap = await checklistRef.get();
 
-    if (docSnap.exists() && docSnap.data().categories) {
-      return docSnap.data().categories as InspectionCategory[];
+    if (!docSnap.exists) {
+      return defaultInspectionCategories;
+    }
+    if (docSnap.exists && docSnap.data()?.categories) {
+      return docSnap.data()?.categories as InspectionCategory[];
     } else {
       await setChecklist(orgId, defaultInspectionCategories);
       return defaultInspectionCategories;
@@ -78,17 +80,17 @@ export async function getChecklist(orgId: string, isSuperAdmin?: boolean): Promi
 
 export async function setChecklist(orgId: string, categories: InspectionCategory[]): Promise<void> {
   if (orgId === 'SUPER_ORG') return; // Do not write checklists for the super org.
-  const checklistRef = doc(db, `organizations/${orgId}/checklist/config`);
-  await setDoc(checklistRef, { categories });
+  const checklistRef = adminDb.doc(`organizations/${orgId}/checklist/config`);
+  await checklistRef.set({ categories });
 }
 
 export async function getInspectionReports(orgId: string): Promise<InspectionReport[]> {
   if (!orgId || orgId === 'SUPER_ORG') {
     return [];
   }
-  const reportsRef = collection(db, `organizations/${orgId}/inspections`);
-  const q = query(reportsRef, orderBy('submittedAt', 'desc'));
-  const querySnapshot = await getDocs(q);
+  const reportsRef = adminDb.collection(`organizations/${orgId}/inspections`);
+  const q = reportsRef.orderBy('submittedAt', 'desc');
+  const querySnapshot = await q.get();
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as InspectionReport));
 }
 
@@ -98,12 +100,12 @@ export async function getInspectionReports(orgId: string): Promise<InspectionRep
  * @param superAdminUid The UID of the Super Admin.
  */
 export async function ensureSuperOrgExists(superAdminUid: string): Promise<void> {
-  const superOrgRef = doc(db, 'organizations', 'SUPER_ORG');
+  const superOrgRef = adminDb.doc('organizations/SUPER_ORG');
   try {
-    const docSnap = await getDoc(superOrgRef);
-    if (!docSnap.exists()) {
+    const docSnap = await superOrgRef.get();
+    if (!docSnap.exists) {
       console.log("SUPER_ORG document not found. Creating it now...");
-      await setDoc(superOrgRef, {
+      await superOrgRef.set({
         name: 'Super Admin Organization',
         createdAt: serverTimestamp(),
         createdBy: superAdminUid,
