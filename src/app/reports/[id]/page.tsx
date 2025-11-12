@@ -42,6 +42,30 @@ const statusMap = {
   'not ok': { icon: XCircle, color: 'text-destructive', label: 'Not OK' },
 };
 
+function groupItemsByCategory(report: InspectionReport | undefined) {
+  if (!report?.items) return [];
+
+  const categoriesMap: Record<
+    string,
+    Omit<InspectionCategory, 'items' | 'icon'> & {
+      items: InspectionItemWithStatus[];
+    }
+  > = {};
+
+  for (const item of report.items) {
+    if (!categoriesMap[item.categoryId]) {
+      categoriesMap[item.categoryId] = {
+        id: item.categoryId,
+        name: item.categoryName,
+        items: [],
+      };
+    }
+    categoriesMap[item.categoryId].items.push(item);
+  }
+
+  return Object.values(categoriesMap);
+}
+
 export default async function ReportDetailPage({
   params,
 }: {
@@ -92,29 +116,30 @@ export default async function ReportDetailPage({
 
   const report = reportResult.data;
 
-  const groupedItems = React.useMemo(() => {
-    if (!report?.items) return [];
+  const groupedItems = groupItemsByCategory(report);
+  // const groupedItems = React.useMemo(() => {
+  //   if (!report?.items) return [];
 
-    const categoriesMap: Record<
-      string,
-      Omit<InspectionCategory, 'items' | 'icon'> & {
-        items: InspectionItemWithStatus[];
-      }
-    > = {};
+  //   const categoriesMap: Record<
+  //     string,
+  //     Omit<InspectionCategory, 'items' | 'icon'> & {
+  //       items: InspectionItemWithStatus[];
+  //     }
+  //   > = {};
 
-    for (const item of report.items) {
-      if (!categoriesMap[item.categoryId]) {
-        categoriesMap[item.categoryId] = {
-          id: item.categoryId,
-          name: item.categoryName,
-          items: [],
-        };
-      }
-      categoriesMap[item.categoryId].items.push(item);
-    }
+  //   for (const item of report.items) {
+  //     if (!categoriesMap[item.categoryId]) {
+  //       categoriesMap[item.categoryId] = {
+  //         id: item.categoryId,
+  //         name: item.categoryName,
+  //         items: [],
+  //       };
+  //     }
+  //     categoriesMap[item.categoryId].items.push(item);
+  //   }
 
-    return Object.values(categoriesMap);
-  }, [report]);
+  //   return Object.values(categoriesMap);
+  // }, [report]);
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
