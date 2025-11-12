@@ -34,8 +34,31 @@ export default async function ReportsPage() {
     redirect('/');
   }
 
-  const initialReports = await getReports();
+  let initialReports;
+  try {
+    // We wrap this in a try...catch so the page doesn't crash
+    // if the database call fails for any reason.
 
+    // This function is returning a mixed type, so we must check it.
+    const reportResult = await getReports();
+
+    if (Array.isArray(reportResult)) {
+      initialReports = reportResult;
+    } else if (
+      reportResult &&
+      typeof reportResult === 'object' &&
+      'data' in reportResult
+    ) {
+      initialReports = reportResult.data || [];
+    } else {
+      console.warn('Unexpected data shape from getReports()', reportResult);
+      initialReports = [];
+    }
+  } catch (error: any) {
+    console.error('Failed to fetch initial reports:', error);
+
+    initialReports = [];
+  }
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <AppHeader />

@@ -65,10 +65,10 @@ function formatVehicleRegistration(registration: string): string {
 // Inspection Report Actions
 // =================================================================================
 
-export async function getReports(): Promise<InspectionReportSummary[]> {
+export async function getReports(): Promise<{ success: boolean; data?: any[]; error?: string; }> {
     const { orgId } = await auth(); // Get orgId securely
     if (!orgId) {
-        return [];
+        return { success: false, error: 'Not authorized' };;
     }
 
     try {
@@ -76,13 +76,31 @@ export async function getReports(): Promise<InspectionReportSummary[]> {
         const q = reportsRef.orderBy('submittedAt', 'desc');
         const snapshot = await q.get();
 
-        return snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-        } as InspectionReportSummary));
-    } catch (error) {
+        // return snapshot.docs.map((doc) => ({
+        //     id: doc.id,
+        //     ...doc.data(),
+        // } as InspectionReportSummary));
+        const reports = snapshot.docs.map(doc => {
+            const data = doc.data();
+            const submittedAtTimestamp = data.submittedAt as Timestamp;
+
+            const serializableSubmittedAt = {
+                seconds: submittedAtTimestamp.seconds,
+                nanoseconds: submittedAtTimestamp.nanoseconds,
+            };
+
+            // Create a plain object that matches your client-side type
+            return {
+                id: doc.id,
+                ...data,
+                submittedAt: serializableSubmittedAt,
+            };
+        });
+
+        return { success: true, data: reports };
+    } catch (error: any) {
         console.error("Error fetching reports:", error);
-        return [];
+        return { success: false, error: error.message };;
     }
 }
 
@@ -95,14 +113,10 @@ export async function saveInspectionReport(data: Record<string, any>, categories
         return { success: false, message: "User is not authenticated or does not belong to an organization." };
     }
 
-    if (!userId || !orgId) {
-        return { success: false, message: "User is not authenticated or does not belong to an organization." };
-    }
-
     try {
         const reportRef = adminDb.collection(`organizations/${orgId}/inspections`).doc();
 
-        const inspectionItems: InspectionItemWithStatus[] = [];
+        const inspectionItems: any[] = [];
         categories.forEach(category => {
             category.items.forEach(item => {
                 inspectionItems.push({
@@ -117,10 +131,12 @@ export async function saveInspectionReport(data: Record<string, any>, categories
             });
         });
 
+        const odometer = parseInt(data.currentOdometer, 10);
+
         // Prepare the data with a server-side timestamp.
         const firestoreData = {
             vehicleRegistration: data.vehicleRegistration,
-            currentOdometer: data.currentOdometer,
+            currentOdometer: isNaN(odometer) ? null : odometer,
             driverName: data.driverName,
             finalVerdict: data.finalVerdict,
             items: inspectionItems,
@@ -129,6 +145,8 @@ export async function saveInspectionReport(data: Record<string, any>, categories
         };
 
         await reportRef.set(firestoreData);
+
+        revalidatePath('/reports');
 
         return {
             success: true,

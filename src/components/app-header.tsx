@@ -13,6 +13,7 @@ import {
   Menu,
   PlusCircle,
   BriefcaseBusiness,
+  UserSquare,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,12 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, useOrganization } from '@clerk/nextjs';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from './ui/dropdown-menu';
 
 interface NavData {
   orgRole: string | null;
@@ -159,28 +166,42 @@ export default function AppHeader({ className }: { className?: string }) {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" asChild>
-                  <Link href="/">
-                    <Home className="h-4 w-4" />
-                    <span className="sr-only">Home</span>
-                  </Link>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Home</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
                 <SignedIn>
                   <UserButton afterSignOutUrl="/sign-in" />
                 </SignedIn>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Logout</p>
-              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Open navigation menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                asChild
+                className="focus:bg-blue-500 focus:text-white hover:bg-blue-500 hover:text-white"
+              >
+                <Link href="/user/manage">
+                  <UserSquare className="mr-2 h-4 w-4" />
+                  Manage Account
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                asChild
+                className="focus:bg-blue-500 focus:text-white hover:bg-blue-500 hover:text-white"
+              >
+                <Link href="/organization/manage">
+                  <BriefcaseBusiness className="mr-2 h-4 w-4" />
+                  Manage Organization
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <ModeToggle />
         </div>
 

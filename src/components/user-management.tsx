@@ -19,16 +19,16 @@ export default function UserManagement({ orgId }: { orgId: string }) {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
-  const fetchUsers = useCallback(async () => {
-    setLoadingUsers(true);
-    const orgUsers = await getOrgUsers(orgId);
-    setUsers(orgUsers);
-    setLoadingUsers(false);
-  }, [orgId]);
+  // const fetchUsers = useCallback(async () => {
+  //   setLoadingUsers(true);
+  //   const orgUsers = await getOrgUsers(orgId);
+  //   setUsers(orgUsers);
+  //   setLoadingUsers(false);
+  // }, [orgId]);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+  // useEffect(() => {
+  //   fetchUsers();
+  // }, [fetchUsers]);
 
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -64,7 +64,9 @@ export default function UserManagement({ orgId }: { orgId: string }) {
                       {user.photoURL && (
                         <AvatarImage src={user.photoURL} alt={user.email} />
                       )}
-                      <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
+                      <AvatarFallback>
+                        {getInitials(user.email || '')}
+                      </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="font-medium">

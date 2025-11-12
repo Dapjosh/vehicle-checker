@@ -59,10 +59,9 @@ const verdicts = [
 export default function ReportsPageClient({
   initialReports,
 }: {
-  initialReports: InspectionReportSummary[];
+  initialReports: any[];
 }) {
-  const [reports, setReports] =
-    useState<InspectionReportSummary[]>(initialReports);
+  const [reports, setReports] = useState<any[]>(initialReports || []);
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(false);
