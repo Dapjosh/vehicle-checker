@@ -10,6 +10,12 @@ export default async function Home() {
   const client = await clerkClient();
   const user = await currentUser();
 
+  const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
+
+  if (!isSuperAdmin) {
+    redirect('/wait-list');
+  }
+
   if (!orgId) {
     const memberships = await client.users.getOrganizationMembershipList({
       userId: userId!,
@@ -23,9 +29,7 @@ export default async function Home() {
     redirect(`/set-org?orgId=${firstOrgId}`);
   }
 
-  const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
-
-  if (!isSuperAdmin && (!orgId || !orgRole)) {
+  if (!orgId || !orgRole) {
     redirect('/wait-list');
   }
 
