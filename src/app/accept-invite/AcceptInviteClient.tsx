@@ -18,30 +18,24 @@ export default function AcceptInvitePage() {
     if (!isLoaded) {
       return;
     }
+
     const ticket = searchParams.get('__clerk_ticket');
     const status = searchParams.get('__clerk_status');
-
-    const redirectUrl = `/sign-in?__clerk_ticket=${ticket}`;
-
-    // If no ticket, this isn't an invite flow. Go home.
     if (!ticket) {
       router.push('/');
       return;
     }
 
+    const ticketQuery = `?__clerk_ticket=${ticket}`;
+
+    // If no ticket, this isn't an invite flow. Go home.
+
     if (status === 'sign_up') {
-      redirectToSignUp({ redirectUrl });
+      router.push(`/sign-up${ticketQuery}`);
     } else {
-      redirectToSignIn({ redirectUrl });
+      router.push(`/sign-in${ticketQuery}`);
     }
-  }, [
-    searchParams,
-    isLoaded,
-    router,
-    redirectToSignIn,
-    redirectToSignUp,
-    isSignedIn,
-  ]);
+  }, [searchParams, isLoaded, router]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center bg-gray-200 p-4">
