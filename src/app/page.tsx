@@ -4,6 +4,7 @@ import AppHeader from '@/components/app-header';
 import { redirect } from 'next/navigation';
 import { getChecklistAction, getDrivers, getVehicles } from '@/app/actions';
 import { DataErrorCard } from '@/components/ui/data-error-card';
+import { NextResponse } from 'next/server';
 
 export default async function Home() {
   const { userId, orgId, orgRole } = await auth();
@@ -12,8 +13,8 @@ export default async function Home() {
 
   const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
 
-  if (!isSuperAdmin) {
-    redirect('/wait-list');
+  if (isSuperAdmin) {
+    redirect('/super-admin');
   }
 
   if (!orgId) {
@@ -28,8 +29,7 @@ export default async function Home() {
 
     redirect(`/set-org?orgId=${firstOrgId}`);
   }
-
-  if (!orgId || !orgRole) {
+  if (!isSuperAdmin && (!orgId || !orgRole)) {
     redirect('/wait-list');
   }
 
