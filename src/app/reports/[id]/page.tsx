@@ -164,11 +164,17 @@ export default async function ReportDetailPage({
             </CardHeader>
           </Card>
           <Card className="printable-card">
-            <CardHeader>
-              <CardTitle>Checklist Details</CardTitle>
+            <CardHeader className="space-y-4">
+              <CardTitle>
+                Checklist Details for Vehicle {report.vehicleRegistration}
+              </CardTitle>
               <CardDescription>
                 A complete breakdown of the inspection checklist items.
               </CardDescription>
+              <h2 className="font-bold">Driver name </h2>
+              <p className="text-sm text-muted-foreground">
+                {report.driverName}
+              </p>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
