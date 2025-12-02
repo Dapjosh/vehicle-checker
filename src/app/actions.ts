@@ -427,9 +427,12 @@ export async function getOrgUsers(orgId: string): Promise<UserData[]> {
     if (orgId === 'SUPER_ORG') {
         return []; // Super admin org has no other members.
     }
-    const usersRef = adminDb.collection('users');
-    const q = usersRef.where('orgId', '==', orgId);
+    const usersRef = adminDb.collection('organizations').doc(orgId).collection('members');
+    // const q = usersRef.where('orgId', '==', orgId);
+    const q = usersRef;
+
     const querySnapshot = await q.get();
+
     return querySnapshot.docs.map(doc => doc.data() as UserData);
 }
 
