@@ -262,7 +262,9 @@ export default function AppHeader({ className }: { className?: string }) {
       {orgName && (
         <div className="flex items-center justify-center h-16 border-b bg-background px-4 md:px-6">
           <BriefcaseBusiness className="mr-2 h-5 w-5 text-primary" />
-          <h1 className="text-xl font-bold text-black">{orgName}</h1>
+          <h1 className="text-xl font-bold text-black dark:text-white">
+            {orgName}
+          </h1>
         </div>
       )}
     </div>
