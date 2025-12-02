@@ -439,7 +439,21 @@ export async function getOrgUsers(orgId: string): Promise<MemberData[]> {
         return [];
     }
 
-    return snapshot.docs.map(doc => doc.data() as MemberData);
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+
+        if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
+            data.createdAt = {
+                seconds: data.createdAt.seconds,
+                nanoseconds: data.createdAt.nanoseconds,
+            };
+        }
+
+        return {
+            id: doc.id,
+            ...data,
+        } as MemberData;
+    });
 }
 
 export async function getAllOrganizations(): Promise<Organization[]> {

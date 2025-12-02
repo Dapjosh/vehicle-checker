@@ -142,6 +142,7 @@ export interface UserData {
 }
 
 export interface MemberData {
+  id: string;
   orgId: string;
   email: string;
   role: string;
