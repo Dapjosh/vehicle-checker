@@ -141,6 +141,14 @@ export interface UserData {
   photoURL?: string;
 }
 
+export interface MemberData {
+  orgId: string;
+  email: string;
+  role: string;
+  orgName: string;
+  createdBy: string;
+}
+
 export interface Organization {
   id: string;
   name: string;

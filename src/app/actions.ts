@@ -3,7 +3,7 @@
 
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { type InspectionCategory, InspectionReportSummary, type UserData, type Organization, type Vehicle, type Driver, InspectionItemWithStatus, InspectionReport } from '@/lib/definitions';
+import { type InspectionCategory, InspectionReportSummary, type UserData, type Organization, type MemberData, type Vehicle, type Driver, InspectionItemWithStatus, InspectionReport } from '@/lib/definitions';
 
 import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -423,7 +423,7 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
     }
 }
 
-export async function getOrgUsers(orgId: string) {
+export async function getOrgUsers(orgId: string): Promise<MemberData[]> {
     if (orgId === 'SUPER_ORG') {
         return []; // Super admin org has no other members.
     }
@@ -439,7 +439,7 @@ export async function getOrgUsers(orgId: string) {
         return [];
     }
 
-    return snapshot.docs.map(doc => doc.data());
+    return snapshot.docs.map(doc => doc.data() as MemberData);
 }
 
 export async function getAllOrganizations(): Promise<Organization[]> {
