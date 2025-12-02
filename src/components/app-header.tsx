@@ -58,14 +58,13 @@ function NavLinks({
   const LinkComponent = isMobile ? SheetClose : Link;
 
   const isSuperAdmin = navData.globalRole === 'super_admin';
-  const isOrgMember =
-    navData.orgRole === 'org:member' || navData.orgRole === 'org:admin';
+  const isOrgMember = navData.orgRole === 'org:member';
 
   const isOrgAdmin = navData.orgRole === 'org:admin';
 
   return (
     <>
-      {(navData.orgRole || isSuperAdmin || isOrgAdmin) && (
+      {navData.orgRole && (isSuperAdmin || isOrgAdmin) && (
         <Button {...commonButtonProps} asChild>
           <LinkComponent href="/reports">
             <FileText className="mr-2 h-4 w-4" />
@@ -74,7 +73,7 @@ function NavLinks({
         </Button>
       )}
 
-      {isOrgMember && (
+      {(isOrgAdmin || isOrgMember) && (
         <Button {...commonButtonProps} asChild>
           <LinkComponent href="/reports/add">
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -83,7 +82,7 @@ function NavLinks({
         </Button>
       )}
 
-      {(isOrgMember || isSuperAdmin) && (
+      {(isOrgAdmin || isSuperAdmin) && (
         <>
           <Button {...commonButtonProps} asChild>
             <LinkComponent href="/fleet">
@@ -117,6 +116,8 @@ export default function AppHeader({ className }: { className?: string }) {
   const { isLoaded: isAuthLoaded, orgRole } = useAuth();
   const { organization } = useOrganization();
   const { isLoaded: isUserLoaded, user } = useUser();
+
+  const isOrgAdmin = orgRole === 'org:admin';
 
   const orgName = organization ? organization.name : 'No Organization';
 
@@ -173,34 +174,38 @@ export default function AppHeader({ className }: { className?: string }) {
             </Tooltip>
           </TooltipProvider>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Open navigation menu</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                asChild
-                className="focus:bg-blue-500 focus:text-white hover:bg-blue-500 hover:text-white"
-              >
-                <Link href="/user/manage">
-                  <UserSquare className="mr-2 h-4 w-4" />
-                  Manage Account
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                asChild
-                className="focus:bg-blue-500 focus:text-white hover:bg-blue-500 hover:text-white"
-              >
-                <Link href="/organization/manage">
-                  <BriefcaseBusiness className="mr-2 h-4 w-4" />
-                  Manage Organization
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {isOrgAdmin && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Open navigation menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    asChild
+                    className="focus:bg-blue-500 focus:text-white hover:bg-blue-500 hover:text-white"
+                  >
+                    <Link href="/user/manage">
+                      <UserSquare className="mr-2 h-4 w-4" />
+                      Manage Account
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    asChild
+                    className="focus:bg-blue-500 focus:text-white hover:bg-blue-500 hover:text-white"
+                  >
+                    <Link href="/organization/manage">
+                      <BriefcaseBusiness className="mr-2 h-4 w-4" />
+                      Manage Organization
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          )}
 
           <ModeToggle />
         </div>

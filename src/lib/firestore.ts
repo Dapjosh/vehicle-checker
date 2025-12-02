@@ -3,6 +3,7 @@ import { adminDb } from './firebase-admin';
 import type { UserData, InspectionCategory, Organization, InspectionReport } from './definitions';
 import { defaultInspectionCategories } from './definitions';
 import { SUPER_ADMIN_UID } from './config';
+import { auth } from './firebase';
 
 /**
  * Retrieves user data from the Firestore 'users' collection.
@@ -41,15 +42,9 @@ import { SUPER_ADMIN_UID } from './config';
 // }
 
 
-export async function getOrgUsers(orgId: string): Promise<UserData[]> {
-  if (orgId === 'SUPER_ORG') {
-    return []; // Super admin org has no other members.
-  }
-  const usersRef = adminDb.collection('users');
-  const q = usersRef.where('orgId', '==', orgId);
-  const querySnapshot = await q.get();
-  return querySnapshot.docs.map(doc => doc.data() as UserData);
-}
+
+
+
 
 
 // Checklist Management

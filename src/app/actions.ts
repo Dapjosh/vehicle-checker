@@ -423,6 +423,15 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
     }
 }
 
+export async function getOrgUsers(orgId: string): Promise<UserData[]> {
+    if (orgId === 'SUPER_ORG') {
+        return []; // Super admin org has no other members.
+    }
+    const usersRef = adminDb.collection('users');
+    const q = usersRef.where('orgId', '==', orgId);
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => doc.data() as UserData);
+}
 
 export async function getAllOrganizations(): Promise<Organization[]> {
 
@@ -451,6 +460,59 @@ export async function getAllOrganizations(): Promise<Organization[]> {
             createdAt: createdAt,
         } as Organization;
     });
+}
+
+export async function inviteUserToOrg(orgId: string, email: string) {
+    const { userId, orgRole, orgSlug } = await auth();
+
+
+    if (!userId) {
+        return { success: false, error: 'Not authenticated' };
+    }
+
+    const client = await clerkClient();
+
+    try {
+        const organization = await client.organizations.getOrganization({ organizationId: orgId });
+
+        if (orgRole !== 'org:admin') {
+            return { success: false, error: 'Unauthorized' };
+        }
+        const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/accept-invite`;
+
+        // Create the invitation in Clerk
+        await client.organizations.createOrganizationInvitation({
+            organizationId: orgId,
+            inviterUserId: userId,
+            emailAddress: email,
+            role: 'org:member',
+            redirectUrl: redirectUrl,
+        });
+
+        const adminRef = adminDb.collection(`organizations/${orgId}/members`).doc();
+
+        await adminRef.set({
+            clerkOrgId: orgId,
+            name: organization.name,
+            slug: orgSlug,
+            email: email,
+            role: 'org:member',
+            createdBy: userId,
+            createdAt: FieldValue.serverTimestamp(),
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Failed to invite user:", error);
+        // Return a friendly error message
+        const errorMessage = error.errors?.[0]?.message || error.message || 'Failed to send invitation';
+        return { success: false, error: errorMessage };
+    }
+
+
+
+
+
 }
 
 // =================================================================================

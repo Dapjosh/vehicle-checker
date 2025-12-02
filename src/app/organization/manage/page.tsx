@@ -7,6 +7,7 @@ import ManageOrganizationClientPage from '@/components/manage-organization-page'
 
 export default async function ManageOrganization() {
   const { userId, orgId, orgRole } = await auth();
+
   const client = await clerkClient();
   const user = await currentUser();
 
