@@ -423,7 +423,7 @@ export async function createOrganizationAndInvite(orgName: string, userEmail: st
     }
 }
 
-export async function getOrgUsers(orgId: string): Promise<UserData[]> {
+export async function getOrgUsers(orgId: string) {
     if (orgId === 'SUPER_ORG') {
         return []; // Super admin org has no other members.
     }
@@ -433,7 +433,9 @@ export async function getOrgUsers(orgId: string): Promise<UserData[]> {
 
     const querySnapshot = await q.get();
 
-    return querySnapshot.docs.map(doc => doc.data() as UserData);
+    console.log(querySnapshot);
+
+    return querySnapshot.docs.map(doc => doc.data());
 }
 
 export async function getAllOrganizations(): Promise<Organization[]> {
