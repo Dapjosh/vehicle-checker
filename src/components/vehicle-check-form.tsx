@@ -70,6 +70,7 @@ import { root } from 'postcss';
 const generateFormSchema = (categories: InspectionCategory[]) => {
   const schemaFields: Record<string, z.ZodType<any, any, any>> = {
     vehicleRegistration: z.string().min(1, 'Please select a vehicle.'),
+    inspectingOfficer: z.string().min(1, 'Please select an inspector.'),
     currentOdometer: z.coerce.number().min(1, 'Odometer reading is required.'),
     driverName: z.string().min(1, 'Please select a driver.'),
     finalVerdict: z.enum(['PASS', 'FAIL'], {
@@ -120,6 +121,7 @@ function InspectionForm({
     const values: Record<string, string | undefined | number> = {
       vehicleRegistration: '',
       currentOdometer: '',
+      inspectingOfficer: '',
       driverName: '',
       finalVerdict: undefined,
     };
@@ -234,12 +236,30 @@ function InspectionForm({
                 control={form.control}
                 name="currentOdometer"
                 render={({ field }) => (
-                  <FormItem className="md:col-span-2">
+                  <FormItem>
                     <FormLabel>Current Odometer (km)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         placeholder="e.g., 125000"
+                        {...field}
+                        disabled={isFormDisabled}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="inspectingOfficer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Inspecting Officer</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="e.g., John Doe"
                         {...field}
                         disabled={isFormDisabled}
                       />

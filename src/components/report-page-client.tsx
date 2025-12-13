@@ -125,6 +125,7 @@ export default function ReportsPageClient({
         'Report ID',
         'Vehicle Registration',
         'Driver Name',
+        'Inspected By',
         'Odometer',
         'Date',
         'Final Verdict',
@@ -138,6 +139,7 @@ export default function ReportsPageClient({
         const row: Record<string, any> = {
           'Report ID': report.id,
           'Vehicle Registration': report.vehicleRegistration,
+          'Inspected By': report.inspectedBy,
           'Driver Name': report.driverName,
           Odometer: report.currentOdometer,
           Date: new Date(report.submittedAt.seconds * 1000).toLocaleString(),
@@ -281,6 +283,7 @@ export default function ReportsPageClient({
                   <TableHead>Odometer</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Verdict</TableHead>
+                  <TableHead>Inspected By</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -317,6 +320,8 @@ export default function ReportsPageClient({
                           {report.finalVerdict}
                         </Badge>
                       </TableCell>
+
+                      <TableCell>{report.inspectedBy}</TableCell>
                       <TableCell className="text-right">
                         <Button asChild variant="outline" size="sm">
                           <Link href={`/reports/${report.id}`}>

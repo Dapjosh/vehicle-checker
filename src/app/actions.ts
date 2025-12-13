@@ -133,12 +133,16 @@ export async function saveInspectionReport(data: Record<string, any>, categories
 
         const odometer = parseInt(data.currentOdometer, 10);
 
+        //capitize string
+        const inspectedBy = data.inspectingOfficer.toUpperCase();
+
         // Prepare the data with a server-side timestamp.
         const firestoreData = {
             vehicleRegistration: data.vehicleRegistration,
             currentOdometer: isNaN(odometer) ? null : odometer,
             driverName: data.driverName,
             finalVerdict: data.finalVerdict,
+            inspectedBy: inspectedBy,
             items: inspectionItems,
             submittedBy: userId,
             submittedAt: FieldValue.serverTimestamp(),

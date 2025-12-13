@@ -226,6 +226,11 @@ export default async function ReportDetailPage({
                     </div>
                   );
                 })}
+                <div>
+                  <p className="dark:text-white italic">
+                    <strong>Inspected By:</strong> {report.inspectedBy}
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>

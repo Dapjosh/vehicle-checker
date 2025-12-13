@@ -161,6 +161,7 @@ export interface InspectionReportSummary {
   id: string;
   vehicleRegistration: string;
   driverName: string;
+  inspectedBy: string;
   currentOdometer: number;
   finalVerdict: 'PASS' | 'FAIL';
   submittedBy: string;
