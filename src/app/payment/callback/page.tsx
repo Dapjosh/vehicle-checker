@@ -47,11 +47,11 @@ export default function PaymentCallbackPage() {
     <div className= "flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4" >
     <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center" >
 
-      { status === 'processing' && (
+      {status === 'processing' && (
         <div className="flex flex-col items-center" >
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
             <h2 className="text-xl font-semibold" > Verifying Payment...</h2>
-              < p className = "text-muted-foreground mt-2" > Setting up your 14 - day trial.</p>
+              <p className = "text-muted-foreground mt-2" > Setting up your 14 - day trial.</p>
                 </div>
         )
 }
