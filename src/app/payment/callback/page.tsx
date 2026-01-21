@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { verifyAndSubscribeAction } from '@/app/actions';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-export default function PaymentCallbackPage() {
+function PaymentCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const reference = searchParams.get('reference');
@@ -44,7 +44,7 @@ export default function PaymentCallbackPage() {
   }, [reference, router]);
 
   return (
-    <div className= "flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4" >
+    
     <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center" >
 
       {status === 'processing' && (
@@ -85,6 +85,24 @@ export default function PaymentCallbackPage() {
 }
 
 </div>
-  </div>
+  );
+}
+
+export default function PaymentCallbackPage() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
+      <Suspense 
+        fallback={
+          <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center">
+             <div className="flex flex-col items-center">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+              <h2 className="text-xl font-semibold">Loading...</h2>
+            </div>
+          </div>
+        }
+      >
+        <PaymentCallbackContent />
+      </Suspense>
+    </div>
   );
 }
