@@ -154,7 +154,7 @@ export default function AppHeader({ className }: { className?: string }) {
         <div className="flex items-center gap-2">
           <div
             className="flex items-center gap-2 cursor-pointer"
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/dashboard')}
           >
             <Wrench className="h-6 w-6 text-primary" />
             <h1 className="text-xl font-bold text-primary">FleetCheckr</h1>

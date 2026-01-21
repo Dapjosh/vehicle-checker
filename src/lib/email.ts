@@ -39,3 +39,38 @@ export async function sendOrganizationInviteEmail(to: string, orgName: string, s
         return { success: false, error: message };
     }
 }
+
+export async function sendLeadEmail(emailData: { name: string; email: string; companyName: string; fleetSize: string; message: string }): Promise<{ success: boolean; error?: string }> {
+    if (!process.env.RESEND_API_KEY) {
+        console.error("RESEND_API_KEY is not set. Cannot send email.");
+        return { success: false, error: "Email service is not configured. RESEND_API_KEY is missing." };
+    }
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: 'Fleetcheckr <onboarding@fleetcheckr.com>', // Use Resend's sandbox domain for testing
+            to: ['onboarding@fleetcheckr.com'],
+            subject: 'New Lead Received',
+            html: `
+                <h1>New Lead Received</h1>
+                <p>Name: ${emailData['name']}</p>
+                <p>Email: ${emailData['email']}</p>
+                <p>Company Name: ${emailData['companyName']}</p>
+                <p>Fleet Size: ${emailData['fleetSize']}</p>
+                <p>Message: ${emailData['message']}</p>
+            `,
+        });
+
+        if (error) {
+            console.error("Resend API error:", error);
+            return { success: false, error: error.message };
+        }
+
+        return { success: true };
+
+    } catch (error) {
+        console.error("Failed to send email:", error);
+        const message = error instanceof Error ? error.message : 'An unknown error occurred';
+        return { success: false, error: message };
+    }
+}
