@@ -640,3 +640,117 @@ export async function deleteVehicle(vehicleId: string): Promise<{ success: boole
 }
 
 
+
+//
+// Payments
+// ============================================================================================================================================================
+
+export async function initializePaystackTransactionAction(email: string) {
+    const { orgId } = await auth();
+
+    if (!orgId) return { success: false, error: "No organization found" };
+
+    const amountInKobo = 50 * 100; // NGN 50 charge for verification
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`;
+
+    try {
+        const response = await fetch('https://api.paystack.co/transaction/initialize', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email,
+                amount: amountInKobo,
+                callback_url: callbackUrl,
+                metadata: {
+                    orgId, // Pass orgId so we verify it later
+                    type: 'card_verification'
+                }
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!data.status) {
+            return { success: false, error: data.message };
+        }
+
+        return { success: true, url: data.data.authorization_url, reference: data.data.reference };
+    } catch (error: any) {
+        console.error("Paystack Init Error:", error);
+        return { success: false, error: "Payment initialization failed" };
+    }
+}
+
+/**
+ * 2. Verify Transaction & Create Delayed Subscription
+ * Called when Paystack redirects back to us.
+ */
+export async function verifyAndSubscribeAction(reference: string) {
+    const { userId } = await auth();
+
+    try {
+        // A. Verify the Transaction
+        const verifyReq = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+            headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
+        });
+        const verifyData = await verifyReq.json();
+
+        if (!verifyData.status || verifyData.data.status !== 'success') {
+            return { success: false, error: 'Transaction verification failed' };
+        }
+
+        const authCode = verifyData.data.authorization.authorization_code;
+        const customerEmail = verifyData.data.customer.email;
+        const orgId = verifyData.data.metadata.orgId;
+
+        if (!authCode || !orgId) {
+            return { success: false, error: 'Invalid transaction data' };
+        }
+
+        // B. Calculate Start Date (30 Days from now)
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() + 30);
+
+        // C. Create Subscription with Paystack
+        const subReq = await fetch('https://api.paystack.co/subscription', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer: customerEmail,
+                plan: process.env.PAYSTACK_PLAN_CODE,
+                authorization: authCode, // The tokenized card
+                start_date: startDate.toISOString(), // Delay charge by 14 days
+            }),
+        });
+
+        const subData = await subReq.json();
+
+        if (!subData.status) {
+            return { success: false, error: 'Failed to create subscription: ' + subData.message };
+        }
+
+        // D. Update Firestore
+        const orgRef = adminDb.doc(`organizations/${orgId}`);
+
+        await orgRef.update({
+            plan: 'pro',
+            subscriptionStatus: 'trialing',
+            paystackSubCode: subData.data.subscription_code,
+            paystackEmailToken: subData.data.email_token,
+            trialEndsAt: startDate, // Save the actual date object/timestamp
+            updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        return { success: true };
+
+    } catch (error: any) {
+        console.error("Subscription Error:", error);
+        return { success: false, error: error.message };
+    }
+}
