@@ -1,13 +1,13 @@
-import FleetManager from '@/components/fleet-manager';
-import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
-import AppHeader from '@/components/app-header';
+import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import ChecklistEditor from '@/components/checklist-editor';
 
-export default async function FleetPage() {
+export default async function AdminPage() {
   const user = await currentUser();
   const { userId, orgId, orgRole } = await auth();
   const client = await clerkClient();
 
+  // The AuthProvider handles loading and redirection for non-admins.
   if (!userId || !user) {
     redirect('/sign-in');
   }
@@ -24,6 +24,7 @@ export default async function FleetPage() {
 
     redirect(`/set-org?orgId=${firstOrgId}`);
   }
+
   const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
   const isOrgAdmin = orgRole === 'org:admin';
 
@@ -31,20 +32,13 @@ export default async function FleetPage() {
     // If not, send them to the dashboard
     redirect('/');
   }
+
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader />
+    <div className="flex flex-col">
+      
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="mx-auto grid w-full max-w-4xl gap-8">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">
-              Fleet Management
-            </h2>
-            <p className="text-muted-foreground">
-              Manage your organization's drivers and vehicles.
-            </p>
-          </div>
-          <FleetManager orgId={orgId} />
+          <ChecklistEditor />
         </div>
       </main>
     </div>

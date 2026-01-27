@@ -35,8 +35,8 @@ export default async function ManageOrganization() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader />
+    <div className="flex flex-col">
+      
       <ManageOrganizationClientPage orgId={orgId} />
     </div>
   );

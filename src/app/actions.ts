@@ -68,6 +68,53 @@ function formatVehicleRegistration(registration: string): string {
   return registration.replace(/[\s-]+/g, "").toUpperCase();
 }
 
+export async function getDashboardStats() {
+  const { userId, orgId } = await auth();
+  const user = await currentUser();
+
+  if (!userId || !user) {
+    return { success: false, error: "Not authenticated" };
+  }
+
+  const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
+
+  try {
+    let stats = {
+      organizations: 0,
+      reports: 0,
+      vehicles: 0,
+      drivers: 0,
+    };
+
+    if (isSuperAdmin) {
+      
+      const orgsSnapshot = await adminDb.collection('organizations').count().get();
+      const reportsSnapshot = await adminDb.collectionGroup('inspections').count().get();
+      
+      stats.organizations = orgsSnapshot.data().count;
+      stats.reports = reportsSnapshot.data().count;
+    } else {
+      
+      if (!orgId) return { success: false, error: "No organization found" };
+
+      const orgRef = adminDb.collection('organizations').doc(orgId);
+      
+      const reportsSnapshot = await orgRef.collection('inspections').count().get();
+      const vehiclesSnapshot = await orgRef.collection('vehicles').count().get();
+      const driversSnapshot = await orgRef.collection('drivers').count().get();
+
+      stats.reports = reportsSnapshot.data().count;
+      stats.vehicles = vehiclesSnapshot.data().count;
+      stats.drivers = driversSnapshot.data().count;
+    }
+
+    return { success: true, data: stats, isSuperAdmin };
+  } catch (error: any) {
+    console.error("Error fetching stats:", error);
+    return { success: false, error: "Failed to load dashboard statistics" };
+  }
+}
+
 // =================================================================================
 // Inspection Report Actions
 // =================================================================================

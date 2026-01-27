@@ -80,10 +80,10 @@ export default function LandingPage() {
           <span className="text-yellow-300">FleetCheckr</span>
         </div>
         <nav className="ml-auto flex gap-4 sm:gap-6">
-          <Link href="#features" className="text-md font-medium hover:underline underline-offset-4 flex items-center">
+          <Link href="#features" className="text-md font-medium text-white hover:underline underline-offset-4 flex items-center">
             Features
           </Link>
-          <Link href="#contact" className="text-md font-medium hover:underline underline-offset-4 flex items-center">
+          <Link href="#contact" className="text-md font-medium text-white hover:underline underline-offset-4 flex items-center">
             Contact
           </Link>
           <Link href="/sign-in" className="border border-yellow-300 px-4 py-2 rounded-md text-md font-medium text-yellow-300 hover:bg-yellow-300 hover:text-neutral-900 transition flex items-center">
@@ -108,7 +108,7 @@ export default function LandingPage() {
           </div>
           {/* --- ANIMATED BACKGROUND END --- */}
 
-          <div className="container px-4 md:px-6 relative z-10">
+          <div className="container px-4 mx-auto relative z-10">
             <div className="flex flex-col items-center align-start space-y-4 text-center">
               <div className="flex flex-col items-center space-y-5">
             

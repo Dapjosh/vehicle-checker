@@ -1,7 +1,6 @@
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
-import AppHeader from '@/components/app-header';
 import ReportsPageClient from '@/components/report-page-client';
 import { getReports } from '@/app/actions';
 
@@ -60,8 +59,8 @@ export default async function ReportsPage() {
     initialReports = [];
   }
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader />
+    <div className="flex flex-col">
+    
       <ReportsPageClient initialReports={initialReports} />
     </div>
   );

@@ -18,8 +18,8 @@ export default async function SuperAdminPage() {
   const initialOrganizations = await getAllOrganizations();
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader />
+    <div className="flex flex-col">
+
       <SuperAdminClientPage initialOrganizations={initialOrganizations} />
     </div>
   );

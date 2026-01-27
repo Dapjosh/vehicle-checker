@@ -94,8 +94,8 @@ export default async function ReportDetailPage({
 
   if (!reportResult.success || !reportResult.data) {
     return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
-        <AppHeader />
+      <div className="flex flex-col">
+       
         <Card className="text-center py-12">
           <CardHeader>
             <CardTitle>Report Not Found</CardTitle>
@@ -142,8 +142,8 @@ export default async function ReportDetailPage({
   // }, [report]);
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background">
-      <AppHeader />
+    <div className="flex flex-col">
+      
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="mx-auto grid w-full max-w-4xl gap-8 printable-container">
           <Card className="printable-card">

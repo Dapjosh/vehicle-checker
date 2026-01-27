@@ -63,7 +63,7 @@ import { CSS } from '@dnd-kit/utilities';
 import {
   getChecklistAction,
   saveChecklistAction,
-} from '@/app/admin/checklist-actions';
+} from '@/components/checklist-actions';
 
 import { useToast } from '@/hooks/use-toast';
 

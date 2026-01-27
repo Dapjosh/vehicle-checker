@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache';
 
 export async function getChecklistAction(): Promise<InspectionCategory[]> {
   const { orgId } = await auth();
-
   if (!orgId) {
     throw new Error('Organization ID not found in user session.');
   }
