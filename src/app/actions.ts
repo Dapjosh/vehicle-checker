@@ -259,7 +259,7 @@ export async function saveInspectionReport(
     };
 
     await reportRef.set(firestoreData);
-
+    revalidatePath('/dashboard');
     revalidatePath("/reports");
 
     return {
@@ -702,49 +702,180 @@ async function getCollectionData<T>(
   });
 }
 
-export async function getDrivers(): Promise<Driver[]> {
-  const { orgId } = await auth(); // Get orgId securely
-  if (!orgId) return [];
-  return getCollectionData<Driver>(orgId, "drivers", "name");
+// export async function getDrivers(): Promise<Driver[]> {
+//   const { orgId } = await auth(); // Get orgId securely
+//   if (!orgId) return [];
+//   return getCollectionData<Driver>(orgId, "drivers", "name");
+// }
+
+// export async function getVehicles(): Promise<Vehicle[]> {
+//   const { orgId } = await auth(); // Get orgId securely
+//   if (!orgId) return [];
+//   return getCollectionData<Vehicle>(orgId, "vehicles", "registration");
+// }
+
+function serializeTimestamp(timestamp: Timestamp | any): { seconds: number; nanoseconds: number } | null {
+  if (!timestamp || typeof timestamp.toMillis !== 'function') return null;
+  return {
+    seconds: timestamp.seconds,
+    nanoseconds: timestamp.nanoseconds,
+  };
 }
 
-export async function getVehicles(): Promise<Vehicle[]> {
-  const { orgId } = await auth(); // Get orgId securely
-  if (!orgId) return [];
-  return getCollectionData<Vehicle>(orgId, "vehicles", "registration");
-}
 
-async function addFleetItem(
-  collectionName: "drivers" | "vehicles",
-  data: { name: string } | { registration: string },
-): Promise<{ success: boolean; message: string }> {
-  const { orgId } = await auth(); // Get orgId securely
-  if (!orgId) {
-    return { success: false, message: "Organization ID is required." };
+export async function getDrivers(limitSize: number = 10,lastCreatedAt?: { seconds: number, nanoseconds: number }): Promise<Driver[]> {
+  const { orgId } = await auth();
+  if (!orgId) return [];
+
+  // const snapshot = await adminDb.collection(`organizations/${orgId}/drivers`).get();
+   let q = adminDb.collection(`organizations/${orgId}/drivers`)
+    .orderBy('createdAt', 'desc')
+    .limit(limitSize);
+  if (lastCreatedAt) {
+    const cursor = new Timestamp(lastCreatedAt.seconds, lastCreatedAt.nanoseconds);
+    q = q.startAfter(cursor);
   }
+  const snapshot = await q.get();
+  return snapshot.docs.map(doc => {
+     const data = doc.data();
+
+      if (data.createdAt) data.createdAt = serializeTimestamp(data.createdAt);
+     if (data.updatedAt) data.updatedAt = serializeTimestamp(data.updatedAt);
+     // Serialize nested timestamps if any exist in the future
+     return { id: doc.id, ...data } as Driver;
+  });
+  
+}
+
+export async function saveDriverAction(driver: Partial<Driver>) {
+  const { orgId } = await auth();
+  if (!orgId) return { success: false, error: "Not authenticated" };
+
   try {
-    const itemRef = adminDb
-      .collection(`organizations/${orgId}/${collectionName}`)
-      .doc();
-    await itemRef.set({
-      ...data,
-      id: itemRef.id,
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    return {
-      success: true,
-      message: `${collectionName.slice(0, -1)} added successfully.`,
+    const driverData = {
+      ...driver,
+      orgId,
+      updatedAt: FieldValue.serverTimestamp(),
     };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "An unknown error occurred.";
-    console.error(`Error adding ${collectionName}:`, message);
-    return {
-      success: false,
-      message: `Could not add ${collectionName.slice(0, -1)}.`,
-    };
+
+    if (!driver.id) {
+      driverData.createdAt = FieldValue.serverTimestamp();
+      await adminDb.collection(`organizations/${orgId}/drivers`).add(driverData);
+    } else {
+      await adminDb.doc(`organizations/${orgId}/drivers/${driver.id}`).set(driverData, { merge: true });
+    }
+
+    revalidatePath('/fleet');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }
+
+export async function deleteDriverAction(driverId: string) {
+  const { orgId } = await auth();
+  if (!orgId) return { success: false, error: "Not authenticated" };
+
+  try {
+    await adminDb.doc(`organizations/${orgId}/drivers/${driverId}`).delete();
+    revalidatePath('/fleet');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getVehicles(limitSize: number = 10, lastCreatedAt?: { seconds: number, nanoseconds: number }): Promise<Vehicle[]> {
+  const { orgId } =await auth();
+  if (!orgId) return [];
+
+  let q = adminDb.collection(`organizations/${orgId}/vehicles`)
+    .orderBy('createdAt', 'desc')
+    .limit(limitSize);
+  if (lastCreatedAt) {
+    const cursor = new Timestamp(lastCreatedAt.seconds, lastCreatedAt.nanoseconds);
+    q = q.startAfter(cursor);
+  }
+  const snapshot = await q.get();
+  return snapshot.docs.map(doc => {
+     const data = doc.data();
+      if (data.createdAt) data.createdAt = serializeTimestamp(data.createdAt);
+     if (data.updatedAt) data.updatedAt = serializeTimestamp(data.updatedAt);
+
+     return { id: doc.id, ...data } as Vehicle;
+    });
+}
+
+export async function saveVehicleAction(vehicle: Partial<Vehicle>) {
+  const { orgId } = await auth();
+  if (!orgId) return { success: false, error: "Not authenticated" };
+
+  try {
+    const vehicleData = {
+      ...vehicle,
+      orgId,
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (!vehicle.id) {
+      vehicleData.createdAt = FieldValue.serverTimestamp();
+      await adminDb.collection(`organizations/${orgId}/vehicles`).add(vehicleData);
+    } else {
+      await adminDb.doc(`organizations/${orgId}/vehicles/${vehicle.id}`).set(vehicleData, { merge: true });
+    }
+
+    revalidatePath('/fleet');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteVehicleAction(vehicleId: string) {
+  const { orgId } = await auth();
+  if (!orgId) return { success: false, error: "Not authenticated" };
+
+  try {
+    await adminDb.doc(`organizations/${orgId}/vehicles/${vehicleId}`).delete();
+    revalidatePath('/fleet');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+
+// async function addFleetItem(
+//   collectionName: "drivers" | "vehicles",
+//   data: { name: string } | { registration: string },
+// ): Promise<{ success: boolean; message: string }> {
+//   const { orgId } = await auth(); // Get orgId securely
+//   if (!orgId) {
+//     return { success: false, message: "Organization ID is required." };
+//   }
+//   try {
+//     const itemRef = adminDb
+//       .collection(`organizations/${orgId}/${collectionName}`)
+//       .doc();
+//     await itemRef.set({
+//       ...data,
+//       id: itemRef.id,
+//       createdAt: FieldValue.serverTimestamp(),
+//     });
+//     return {
+//       success: true,
+//       message: `${collectionName.slice(0, -1)} added successfully.`,
+//     };
+//   } catch (error) {
+//     const message =
+//       error instanceof Error ? error.message : "An unknown error occurred.";
+//     console.error(`Error adding ${collectionName}:`, message);
+//     return {
+//       success: false,
+//       message: `Could not add ${collectionName.slice(0, -1)}.`,
+//     };
+//   }
+// }
 
 export async function addDriver(
   name: string,

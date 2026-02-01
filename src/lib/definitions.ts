@@ -3,16 +3,23 @@ import {
   Cog, Droplets, Car, Armchair, Circle, Lightbulb, Fan,
   Gauge, BatteryCharging, CarFront, Sofa, Siren, Thermometer,
   Speaker, Snowflake, Disc, Fuel, SprayCan, SlidersHorizontal, Wrench,
-  AirVent, Power, Settings2, Radio, CircuitBoard, Heater, ParkingCircle,
+  AirVent, Power, Settings2, Radio, CircuitBoard, Heater, ParkingCircle, LifeBuoy, Wind, AlertTriangle, Zap,AlertOctagon,XCircle, FileText,Truck, User,Info,Settings,
   type LucideProps
 } from 'lucide-react';
 import { type Timestamp } from 'firebase/firestore';
+import { Alert } from '@/components/ui/alert';
 
 
-export const iconMap = {
+export const iconMap: Record<string, any> = {
   Cog,
   Droplets,
   Car,
+  Wind,
+  AlertTriangle,
+  XCircle,
+  FileText,
+  User,
+  Info,
   Armchair,
   Circle,
   Lightbulb,
@@ -42,6 +49,14 @@ export const iconMap = {
   "Driver": Siren,
   "PrimeMover": Car,
   "Trailer": Cog,
+  Engine: Zap,
+  Tires: Disc,
+  Fluids: Droplets,
+  Lights: Lightbulb,
+  Brakes: AlertOctagon,
+  Interior: Settings,
+  Exterior: Truck,
+  Safety: LifeBuoy,
 };
 
 export type IconName = keyof typeof iconMap;
@@ -139,7 +154,10 @@ export interface UserData {
   role?: string;
   displayName?: string;
   photoURL?: string;
+  createdAt?: any;
+  joinedAt?: any;
 }
+
 
 export interface MemberData {
   id: string;
@@ -166,20 +184,99 @@ export interface InspectionReportSummary {
   finalVerdict: 'PASS' | 'FAIL';
   submittedBy: string;
   submittedAt: Timestamp;
+  signatures?: string[]; 
 }
 
 export type InspectionReport = InspectionReportSummary & {
   items: InspectionItemWithStatus[];
 }
 
-export interface Vehicle {
-  id: string;
-  registration: string;
-  createdAt: string;
-}
+// export interface Vehicle {
+//   id: string;
+//   registration: string;
+//   createdAt: string;
+// }
+
+// export interface Driver {
+//   id: string;
+//   name: string;
+//   createdAt: string;
+// }
 
 export interface Driver {
   id: string;
+  orgId: string;
   name: string;
-  createdAt: string;
+  email?: string;
+  photoURL?: string;
+  phone?: string;
+  
+  // Employment Details
+  employeeId?: string;
+  dateHired?: string;
+  rating?: number; // 1-5 scale
+  
+  // Nested Objects
+  license?: DriverLicense;
+  trainings?: TrainingRecord[];
+  
+  status: 'active' | 'inactive' | 'on_leave';
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+
+export type TrainingRecord = {
+  id: string;
+  type: string; // e.g., "Fire Safety", "Defensive Driving"
+  issueDate: string; // ISO string YYYY-MM-DD
+  expiryDate: string; // ISO string YYYY-MM-DD
+  certificateNumber?: string;
+};
+
+export type DriverLicense = {
+  number: string;
+  expiryDate: string;
+  issuingState: string;
+  class?: string;
+};
+
+
+
+// 2. Vehicle Related
+export type VehicleDocument = {
+  id: string;
+  type: string; // e.g., "Road Worthiness", "Insurance"
+  referenceNumber?: string;
+  issueDate?: string;
+  expiryDate?: string;
+};
+
+export type MaintenanceRecord = {
+  lastServiceDate?: string;
+  nextServiceDate?: string;
+  currentOdometer?: number;
+  notes?: string;
+};
+
+export interface Vehicle {
+  id: string;
+  orgId: string;
+  registration: string; // License Plate
+  
+  // Specs
+  type: string; // e.g., "Truck", "Van", "Sedan"
+  make?: string;
+  model?: string;
+  year?: number;
+  vin?: string;
+  chassisNumber?: string;
+  
+  // Nested Objects
+  documents?: VehicleDocument[];
+  maintenance?: MaintenanceRecord;
+  
+  status: 'active' | 'maintenance' | 'retired';
+  createdAt?: any;
+  updatedAt?: any;
 }

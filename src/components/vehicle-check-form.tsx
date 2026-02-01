@@ -270,7 +270,7 @@ function InspectionForm({
               />
             </CardContent>
           </Card>
-
+          <div className="bg-card text-card-foreground shadow-sm border p-6 rounded-lg">
           <Accordion
             type="multiple"
             defaultValue={categories.map((c) => c.id)}
@@ -387,6 +387,8 @@ function InspectionForm({
               );
             })}
           </Accordion>
+
+          </div>
 
           <Separator />
 

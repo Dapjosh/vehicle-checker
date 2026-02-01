@@ -2,6 +2,7 @@ import FleetManager from '@/components/fleet-manager';
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import AppHeader from '@/components/app-header';
 import { redirect } from 'next/navigation';
+import { getDrivers, getVehicles } from '@/app/actions';
 
 export default async function FleetPage() {
   const user = await currentUser();
@@ -31,6 +32,23 @@ export default async function FleetPage() {
     // If not, send them to the dashboard
     redirect('/');
   }
+
+  let drivers: any[] = [];
+  let vehicles: any[] = [];
+
+  try {
+    const [d, v] = await Promise.all([
+      getDrivers(10),
+      getVehicles(10)
+    ]);
+    drivers = d;
+    vehicles = v;
+  } catch (error) {
+    console.error("Failed to load fleet data:", error);
+    // If fetch fails, we pass empty arrays so the UI doesn't crash
+  }
+
+  
   return (
     <div className="flex flex-col">
 
@@ -44,7 +62,8 @@ export default async function FleetPage() {
               Manage your organization's drivers and vehicles.
             </p>
           </div>
-          <FleetManager orgId={orgId} />
+          <FleetManager initialDrivers={drivers} 
+      initialVehicles={vehicles} orgId={orgId} />
         </div>
       </main>
     </div>
