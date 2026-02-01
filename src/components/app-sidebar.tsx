@@ -78,7 +78,7 @@ export function AppSidebar({ isSuperAdmin, className }: SidebarProps) {
       <div className="flex-1 overflow-auto py-4">
         <nav className="grid items-start px-4 text-sm font-medium gap-1">
           {links.map((link) => {
-            const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
+            const isActive = pathname === link.href;
             return (
               <Link
                 key={link.href}
