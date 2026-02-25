@@ -8,8 +8,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
+  const { userId, orgSlug } = await auth();
   const user = await currentUser();
+
+  const orgName = orgSlug
+    ? orgSlug.replace(/-/g, ' ').toUpperCase()
+    : 'No Organization';
 
   if (!userId || !user) {
     redirect('/sign-in');
@@ -18,21 +22,22 @@ export default async function DashboardLayout({
   const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
+    <div className='flex min-h-screen w-full bg-background'>
       {/* Sidebar - Takes up fixed width on desktop */}
       <AppSidebar isSuperAdmin={isSuperAdmin} />
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className='flex flex-col flex-1 min-w-0'>
         {/* Header - Only contains Profile Icon as requested */}
-        <header className="flex h-16 items-center gap-4 border-b bg-background px-6 justify-end">
-          <UserButton afterSignOutUrl="/" />
+        <header className='flex h-16 items-center gap-4 border-b bg-background px-6 justify-between'>
+          <h3 className='text-xs bg-gray-100 rounded-md p-2 font-semibold text-primary uppercase tracking-wide'>
+            {orgName}
+          </h3>
+          <UserButton afterSignOutUrl='/' />
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
-          {children}
-        </main>
+        <main className='flex-1 p-6 md:p-8 overflow-y-auto'>{children}</main>
       </div>
     </div>
   );

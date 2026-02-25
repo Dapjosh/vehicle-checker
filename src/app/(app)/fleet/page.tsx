@@ -1,4 +1,4 @@
-import FleetManager from '@/components/fleet-manager';
+import FleetManager from '@/components/fleet/fleet-manager';
 import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
 import AppHeader from '@/components/app-header';
 import { redirect } from 'next/navigation';
@@ -37,33 +37,33 @@ export default async function FleetPage() {
   let vehicles: any[] = [];
 
   try {
-    const [d, v] = await Promise.all([
-      getDrivers(10),
-      getVehicles(10)
-    ]);
+    const [d, v] = await Promise.all([getDrivers(10), getVehicles(10)]);
     drivers = d;
     vehicles = v;
   } catch (error) {
-    console.error("Failed to load fleet data:", error);
+    console.error('Failed to load fleet data:', error);
     // If fetch fails, we pass empty arrays so the UI doesn't crash
   }
 
-  
   return (
-    <div className="flex flex-col">
-
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="mx-auto grid w-full max-w-4xl gap-8">
+    <div className='flex flex-col'>
+      <main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
+        <div className='mx-auto grid w-full max-w-4xl gap-8'>
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">
+            <h2 className='text-3xl font-bold tracking-tight'>
               Fleet Management
             </h2>
-            <p className="text-muted-foreground">
+            <p className='text-muted-foreground'>
               Manage your organization's drivers and vehicles.
             </p>
           </div>
-          <FleetManager initialDrivers={drivers} 
-      initialVehicles={vehicles} orgId={orgId} />
+          <FleetManager
+            initialDrivers={drivers}
+            initialVehicles={vehicles}
+            orgId={orgId}
+            loadMoreDriversAction={getDrivers}
+            loadMoreVehiclesAction={getVehicles}
+          />
         </div>
       </main>
     </div>

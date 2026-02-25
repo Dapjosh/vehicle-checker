@@ -84,7 +84,7 @@ const generateFormSchema = (categories: InspectionCategory[]) => {
         ['Ok', 'Needs Repair', 'not ok'],
         {
           required_error: 'Please select a status for every item.',
-        }
+        },
       );
       schemaFields[`${item.id}_notes`] = z
         .string()
@@ -114,7 +114,7 @@ function InspectionForm({
 
   const formSchema = React.useMemo(
     () => generateFormSchema(categories),
-    [categories]
+    [categories],
   );
 
   const defaultValues = React.useMemo(() => {
@@ -165,9 +165,9 @@ function InspectionForm({
   const isFormDisabled = isFormSubmitted || isSaving;
 
   return (
-    <div className="space-y-8">
+    <div className='space-y-8'>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
           <Card>
             <CardHeader>
               <CardTitle>Inspection Details</CardTitle>
@@ -175,21 +175,36 @@ function InspectionForm({
                 Enter the vehicle and driver information for this inspection.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-6 md:grid-cols-2">
+            <CardContent className='grid gap-6 md:grid-cols-2'>
               <FormField
                 control={form.control}
-                name="vehicleRegistration"
+                name='vehicleRegistration'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle Registration</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+
+                        const selectedVehicle = vehicles.find(
+                          (v) => v.registration === value,
+                        );
+
+                        if (selectedVehicle?.maintenance?.currentOdometer) {
+                          form.setValue(
+                            'currentOdometer',
+                            selectedVehicle.maintenance.currentOdometer,
+                          );
+                        } else {
+                          form.setValue('currentOdometer', '');
+                        }
+                      }}
                       defaultValue={field.value}
                       disabled={isFormDisabled}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a vehicle" />
+                          <SelectValue placeholder='Select a vehicle' />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -206,7 +221,7 @@ function InspectionForm({
               />
               <FormField
                 control={form.control}
-                name="driverName"
+                name='driverName'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Driver Name</FormLabel>
@@ -217,7 +232,7 @@ function InspectionForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a driver" />
+                          <SelectValue placeholder='Select a driver' />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -234,14 +249,14 @@ function InspectionForm({
               />
               <FormField
                 control={form.control}
-                name="currentOdometer"
+                name='currentOdometer'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Current Odometer (km)</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        placeholder="e.g., 125000"
+                        type='number'
+                        placeholder='e.g., 125000'
                         {...field}
                         disabled={isFormDisabled}
                       />
@@ -252,14 +267,14 @@ function InspectionForm({
               />
               <FormField
                 control={form.control}
-                name="inspectingOfficer"
+                name='inspectingOfficer'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Inspecting Officer</FormLabel>
                     <FormControl>
                       <Input
-                        type="text"
-                        placeholder="e.g., John Doe"
+                        type='text'
+                        placeholder='e.g., John Doe'
                         {...field}
                         disabled={isFormDisabled}
                       />
@@ -270,124 +285,125 @@ function InspectionForm({
               />
             </CardContent>
           </Card>
-          <div className="bg-card text-card-foreground shadow-sm border p-6 rounded-lg">
-          <Accordion
-            type="multiple"
-            defaultValue={categories.map((c) => c.id)}
-            className="w-full"
-          >
-            {categories.map((category) => {
-              const IconComponent = iconMap[category.icon];
-              return (
-                <AccordionItem value={category.id} key={category.id}>
-                  <AccordionTrigger
-                    className="text-xl font-semibold hover:no-underline"
-                    disabled={isFormDisabled}
-                  >
-                    <div className="flex items-center gap-3">
-                      {IconComponent && (
-                        <IconComponent className="h-6 w-6 text-primary" />
-                      )}
-                      {category.name}
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="divide-y divide-border">
-                      {category.items.map((item) => (
-                        <div
-                          className="grid gap-4 py-6 md:grid-cols-2"
-                          key={item.id}
-                        >
-                          <div>
-                            <h4 className="font-medium">{item.name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {item.description}
-                            </p>
+          <div className='bg-card text-card-foreground shadow-sm border p-6 rounded-lg'>
+            <Accordion
+              type='multiple'
+              defaultValue={categories.map((c) => c.id)}
+              className='w-full'
+            >
+              {categories.map((category) => {
+                const IconComponent = iconMap[category.icon];
+                return (
+                  <AccordionItem value={category.id} key={category.id}>
+                    <AccordionTrigger
+                      className='text-xl font-semibold hover:no-underline'
+                      disabled={isFormDisabled}
+                    >
+                      <div className='flex items-center gap-3'>
+                        {IconComponent && (
+                          <IconComponent className='h-6 w-6 text-primary' />
+                        )}
+                        {category.name}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className='divide-y divide-border'>
+                        {category.items.map((item) => (
+                          <div
+                            className='grid gap-4 py-6 md:grid-cols-2'
+                            key={item.id}
+                          >
+                            <div>
+                              <h4 className='font-medium'>{item.name}</h4>
+                              <p className='text-sm text-muted-foreground'>
+                                {item.description}
+                              </p>
+                            </div>
+                            <div className='space-y-4'>
+                              <FormField
+                                control={form.control}
+                                name={`${item.id}_status` as keyof FormValues}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <div className='grid grid-cols-5 gap-2 md:gap-4'>
+                                        <Button
+                                          type='button'
+                                          onClick={() => field.onChange('Ok')}
+                                          variant={
+                                            field.value === 'Ok'
+                                              ? 'default'
+                                              : 'outline'
+                                          }
+                                          className='col-span-2 h-full flex-col p-3 text-sm font-medium data-[variant=default]:bg-accent data-[variant=default]:text-accent-foreground data-[variant=default]:hover:bg-accent/90'
+                                          disabled={isFormDisabled}
+                                        >
+                                          <CheckCircle className='mb-1 h-5 w-5' />
+                                          Ok
+                                        </Button>
+                                        <Button
+                                          type='button'
+                                          onClick={() =>
+                                            field.onChange('Needs Repair')
+                                          }
+                                          variant={
+                                            field.value === 'Needs Repair'
+                                              ? 'default'
+                                              : 'outline'
+                                          }
+                                          className='col-span-2 h-full flex-col p-3 text-sm font-medium data-[variant=default]:bg-amber-500 data-[variant=default]:text-white data-[variant=default]:hover:bg-amber-600'
+                                          disabled={isFormDisabled}
+                                        >
+                                          <Wrench className='mb-1 h-5 w-5' />
+                                          Needs Repair
+                                        </Button>
+                                        <Button
+                                          type='button'
+                                          onClick={() =>
+                                            field.onChange('not ok')
+                                          }
+                                          variant={
+                                            field.value === 'not ok'
+                                              ? 'destructive'
+                                              : 'outline'
+                                          }
+                                          className='col-span-1 h-full flex-col p-3 text-sm font-medium'
+                                          disabled={isFormDisabled}
+                                        >
+                                          <XCircle className='mb-1 h-5 w-5' />
+                                          Not OK
+                                        </Button>
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage className='text-center' />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`${item.id}_notes` as keyof FormValues}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder='Add notes...'
+                                        className='resize-none h-10 min-h-0'
+                                        {...field}
+                                        disabled={isFormDisabled}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
                           </div>
-                          <div className="space-y-4">
-                            <FormField
-                              control={form.control}
-                              name={`${item.id}_status` as keyof FormValues}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <div className="grid grid-cols-5 gap-2 md:gap-4">
-                                      <Button
-                                        type="button"
-                                        onClick={() => field.onChange('Ok')}
-                                        variant={
-                                          field.value === 'Ok'
-                                            ? 'default'
-                                            : 'outline'
-                                        }
-                                        className="col-span-2 h-full flex-col p-3 text-sm font-medium data-[variant=default]:bg-accent data-[variant=default]:text-accent-foreground data-[variant=default]:hover:bg-accent/90"
-                                        disabled={isFormDisabled}
-                                      >
-                                        <CheckCircle className="mb-1 h-5 w-5" />
-                                        Ok
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        onClick={() =>
-                                          field.onChange('Needs Repair')
-                                        }
-                                        variant={
-                                          field.value === 'Needs Repair'
-                                            ? 'default'
-                                            : 'outline'
-                                        }
-                                        className="col-span-2 h-full flex-col p-3 text-sm font-medium data-[variant=default]:bg-amber-500 data-[variant=default]:text-white data-[variant=default]:hover:bg-amber-600"
-                                        disabled={isFormDisabled}
-                                      >
-                                        <Wrench className="mb-1 h-5 w-5" />
-                                        Needs Repair
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        onClick={() => field.onChange('not ok')}
-                                        variant={
-                                          field.value === 'not ok'
-                                            ? 'destructive'
-                                            : 'outline'
-                                        }
-                                        className="col-span-1 h-full flex-col p-3 text-sm font-medium"
-                                        disabled={isFormDisabled}
-                                      >
-                                        <XCircle className="mb-1 h-5 w-5" />
-                                        Not OK
-                                      </Button>
-                                    </div>
-                                  </FormControl>
-                                  <FormMessage className="text-center" />
-                                </FormItem>
-                              )}
-                            />
-                            <FormField
-                              control={form.control}
-                              name={`${item.id}_notes` as keyof FormValues}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormControl>
-                                    <Textarea
-                                      placeholder="Add notes..."
-                                      className="resize-none h-10 min-h-0"
-                                      {...field}
-                                      disabled={isFormDisabled}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              );
-            })}
-          </Accordion>
-
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </div>
 
           <Separator />
@@ -402,38 +418,38 @@ function InspectionForm({
             <CardContent>
               <FormField
                 control={form.control}
-                name="finalVerdict"
+                name='finalVerdict'
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
+                  <FormItem className='space-y-3'>
                     <FormControl>
-                      <div className="flex justify-center gap-4">
+                      <div className='flex justify-center gap-4'>
                         <Button
-                          type="button"
+                          type='button'
                           onClick={() => field.onChange('PASS')}
                           variant={
                             field.value === 'PASS' ? 'default' : 'outline'
                           }
-                          className="flex h-auto w-32 flex-col items-center p-4 data-[variant=default]:bg-accent data-[variant=default]:text-accent-foreground data-[variant=default]:hover:bg-accent/90"
+                          className='flex h-auto w-32 flex-col items-center p-4 data-[variant=default]:bg-accent data-[variant=default]:text-accent-foreground data-[variant=default]:hover:bg-accent/90'
                           disabled={isFormDisabled}
                         >
-                          <CheckCircle className="mb-3 h-6 w-6" />
+                          <CheckCircle className='mb-3 h-6 w-6' />
                           Pass
                         </Button>
                         <Button
-                          type="button"
+                          type='button'
                           onClick={() => field.onChange('FAIL')}
                           variant={
                             field.value === 'FAIL' ? 'destructive' : 'outline'
                           }
-                          className="flex h-auto w-32 flex-col items-center p-4"
+                          className='flex h-auto w-32 flex-col items-center p-4'
                           disabled={isFormDisabled}
                         >
-                          <XCircle className="mb-3 h-6 w-6" />
+                          <XCircle className='mb-3 h-6 w-6' />
                           Fail
                         </Button>
                       </div>
                     </FormControl>
-                    <div className="pt-2 text-center">
+                    <div className='pt-2 text-center'>
                       <FormMessage />
                     </div>
                   </FormItem>
@@ -443,21 +459,21 @@ function InspectionForm({
           </Card>
 
           {!isFormSubmitted && (
-            <div className="flex flex-col items-center gap-4 pt-4">
+            <div className='flex flex-col items-center gap-4 pt-4'>
               <Button
-                type="submit"
-                size="lg"
+                type='submit'
+                size='lg'
                 disabled={isFormDisabled}
-                className="w-full md:w-auto"
+                className='w-full md:w-auto'
               >
                 {isSaving ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                     Saving Report...
                   </>
                 ) : (
                   <>
-                    <Save className="mr-2 h-4 w-4" />
+                    <Save className='mr-2 h-4 w-4' />
                     Save Inspection Report
                   </>
                 )}
@@ -468,19 +484,19 @@ function InspectionForm({
       </Form>
 
       {isFormSubmitted && (
-        <Card className="w-full animate-in fade-in-50 slide-in-from-bottom-10 duration-500">
-          <CardHeader className="text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10 mb-4">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+        <Card className='w-full animate-in fade-in-50 slide-in-from-bottom-10 duration-500'>
+          <CardHeader className='text-center'>
+            <div className='mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10 mb-4'>
+              <CheckCircle className='h-8 w-8 text-green-500' />
             </div>
             <CardTitle>Submission Complete</CardTitle>
             <CardDescription>
               Your inspection report has been saved.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <Button size="lg" variant="outline" onClick={handleResetForm}>
-              <RotateCw className="mr-2 h-4 w-4" />
+          <CardContent className='flex justify-center'>
+            <Button size='lg' variant='outline' onClick={handleResetForm}>
+              <RotateCw className='mr-2 h-4 w-4' />
               Start New Inspection
             </Button>
           </CardContent>
@@ -492,17 +508,17 @@ function InspectionForm({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                type="button"
-                variant="outline"
-                size="icon"
+                type='button'
+                variant='outline'
+                size='icon'
                 onClick={() => form.reset(defaultValues)}
-                className="fixed bottom-6 left-6 z-50 h-14 w-14 rounded-full shadow-lg"
+                className='fixed bottom-6 left-6 z-50 h-14 w-14 rounded-full shadow-lg'
               >
-                <RotateCw className="h-6 w-6" />
-                <span className="sr-only">Reset Form</span>
+                <RotateCw className='h-6 w-6' />
+                <span className='sr-only'>Reset Form</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">
+            <TooltipContent side='right'>
               <p>Reset Form</p>
             </TooltipContent>
           </Tooltip>

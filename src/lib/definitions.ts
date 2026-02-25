@@ -3,7 +3,7 @@ import {
   Cog, Droplets, Car, Armchair, Circle, Lightbulb, Fan,
   Gauge, BatteryCharging, CarFront, Sofa, Siren, Thermometer,
   Speaker, Snowflake, Disc, Fuel, SprayCan, SlidersHorizontal, Wrench,
-  AirVent, Power, Settings2, Radio, CircuitBoard, Heater, ParkingCircle, LifeBuoy, Wind, AlertTriangle, Zap,AlertOctagon,XCircle, FileText,Truck, User,Info,Settings,
+  AirVent, Power, Settings2, Radio, CircuitBoard, Heater, ParkingCircle, LifeBuoy, Wind, AlertTriangle, Zap, AlertOctagon, XCircle, FileText, Truck, User, Info, Settings,
   type LucideProps
 } from 'lucide-react';
 import { type Timestamp } from 'firebase/firestore';
@@ -159,6 +159,19 @@ export interface UserData {
 }
 
 
+export interface ServiceRecord {
+  id: string;
+  serviceDate: string;
+  serviceType: string;
+  currentOdometer: number;
+  status: 'active' | 'maintenance' | 'retired';
+  serviceMileage: number;
+  serviceCost?: number;
+  serviceProvider?: string;
+  notes?: string;
+}
+
+
 export interface MemberData {
   id: string;
   orgId: string;
@@ -184,7 +197,7 @@ export interface InspectionReportSummary {
   finalVerdict: 'PASS' | 'FAIL';
   submittedBy: string;
   submittedAt: Timestamp;
-  signatures?: string[]; 
+  signatures?: string[];
 }
 
 export type InspectionReport = InspectionReportSummary & {
@@ -210,16 +223,16 @@ export interface Driver {
   email?: string;
   photoURL?: string;
   phone?: string;
-  
+
   // Employment Details
   employeeId?: string;
   dateHired?: string;
   rating?: number; // 1-5 scale
-  
+
   // Nested Objects
   license?: DriverLicense;
   trainings?: TrainingRecord[];
-  
+
   status: 'active' | 'inactive' | 'on_leave';
   createdAt?: any;
   updatedAt?: any;
@@ -263,7 +276,7 @@ export interface Vehicle {
   id: string;
   orgId: string;
   registration: string; // License Plate
-  
+
   // Specs
   type: string; // e.g., "Truck", "Van", "Sedan"
   make?: string;
@@ -271,11 +284,13 @@ export interface Vehicle {
   year?: number;
   vin?: string;
   chassisNumber?: string;
-  
+
   // Nested Objects
   documents?: VehicleDocument[];
   maintenance?: MaintenanceRecord;
-  
+
+  serviceHistory?: ServiceRecord[];
+
   status: 'active' | 'maintenance' | 'retired';
   createdAt?: any;
   updatedAt?: any;

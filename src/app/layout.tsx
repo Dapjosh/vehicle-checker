@@ -6,7 +6,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 
 export const metadata: Metadata = {
   title: 'FleetCheckr',
-  description: 'Vehicle Inspection Checklist',
+  description: 'Manage Your Fleets with Ease',
 };
 
 export default function RootLayout({
@@ -16,23 +16,23 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang='en' suppressHydrationWarning>
         <head>
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel='preconnect' href='https://fonts.googleapis.com' />
           <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
-            crossOrigin="anonymous"
+            rel='preconnect'
+            href='https://fonts.gstatic.com'
+            crossOrigin='anonymous'
           />
           <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-            rel="stylesheet"
+            href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+            rel='stylesheet'
           />
         </head>
-        <body className="font-body antialiased" suppressHydrationWarning>
+        <body className='font-body antialiased' suppressHydrationWarning>
           <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
+            attribute='class'
+            defaultTheme='light'
             enableSystem
             disableTransitionOnChange
           >
