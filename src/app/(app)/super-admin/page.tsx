@@ -1,7 +1,6 @@
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { getAllOrganizations } from '@/app/actions';
-import AppHeader from '@/components/app-header';
 import SuperAdminClientPage from '@/components/super-admin-page';
 export default async function SuperAdminPage() {
   const { userId } = await auth();
@@ -18,7 +17,7 @@ export default async function SuperAdminPage() {
   const initialOrganizations = await getAllOrganizations();
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col justify-left items-center min-h-screen">
 
       <SuperAdminClientPage initialOrganizations={initialOrganizations} />
     </div>

@@ -590,6 +590,7 @@ export async function getOrgUsers(orgId: string): Promise<MemberData[]> {
 export async function getAllOrganizations(): Promise<Organization[]> {
   const user = await currentUser();
   const { userId } = await auth();
+  
 
   if (!userId || user?.publicMetadata?.role !== "super_admin") {
     throw new Error("You are not authorized to perform this action.");
@@ -602,19 +603,38 @@ export async function getAllOrganizations(): Promise<Organization[]> {
     return [];
   }
 
-  return snapshot.docs.map((doc) => {
+  const organizationData = snapshot.docs.map(async (doc) => {
     const data = doc.data();
+    const orgId = doc.id;
     const createdAt =
       data.createdAt instanceof Timestamp
         ? data.createdAt.toDate().toISOString()
         : new Date().toISOString();
+
+    const [driversSnap,membersSnap, vehiclesSnap] = await Promise.all([
+      adminDb.collection(`organizations/${orgId}/drivers`).count().get(),
+      adminDb.collection(`organizations/${orgId}/members`).count().get(),
+      adminDb.collection(`organizations/${orgId}/vehicles`).count().get(),
+    ]);
+
+    data.driverCount = driversSnap.data().count;
+    data.memberCount = membersSnap.data().count;
+    data.vehicleCount = vehiclesSnap.data().count;
+
     return {
       id: data.clerkOrgId || doc.id,
       name: data.name,
       slug: data.slug,
+      _count: {
+        drivers: data.driverCount || 0,
+        members: data.memberCount || 0,
+        vehicles: data.vehicleCount || 0,
+      },
       createdAt: createdAt,
     } as Organization;
   });
+
+  return await Promise.all(organizationData);
 }
 
 export async function inviteUserToOrg(orgId: string, email: string) {
@@ -1102,6 +1122,57 @@ export async function verifyAndSubscribeAction(reference: string) {
 
   } catch (error: any) {
     console.error("Subscription Error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getPlatformAveragesAction() {
+  const user = await currentUser();
+  
+  
+  if (!user || user.publicMetadata?.role !== 'super_admin') {
+    return { success: false, error: 'Unauthorized' };
+  }
+
+  try {
+    
+    const orgsSnapshot = await adminDb.collection('organizations').get();
+    const totalOrgs = orgsSnapshot.size;
+
+    if (totalOrgs === 0) {
+      return { success: true, data: { avgDrivers: 0, avgMembers: 0, totalOrgs: 0 } };
+    }
+
+    let totalDrivers = 0;
+    let totalMembers = 0;
+
+    
+    await Promise.all(orgsSnapshot.docs.map(async (orgDoc) => {
+      const orgId = orgDoc.id;
+
+      
+      const driversPromise = adminDb.collection(`organizations/${orgId}/drivers`).count().get();
+      
+      const membersPromise = adminDb.collection(`organizations/${orgId}/members`).count().get();
+
+      const [driversSnap, membersSnap] = await Promise.all([driversPromise, membersPromise]);
+
+      totalDrivers += driversSnap.data().count;
+      totalMembers += membersSnap.data().count;
+    }));
+
+    return {
+      success: true,
+      data: {
+        avgDrivers: parseFloat((totalDrivers / totalOrgs).toFixed(0)),
+        avgMembers: parseFloat((totalMembers / totalOrgs).toFixed(0)),
+        totalOrgs,
+        totalDrivers,
+        totalMembers
+      }
+    };
+  } catch (error: any) {
+    console.error("Error calculating averages:", error);
     return { success: false, error: error.message };
   }
 }

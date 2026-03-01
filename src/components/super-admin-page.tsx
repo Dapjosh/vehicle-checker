@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useTransition, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useState, useEffect, useTransition, useCallback, use } from 'react';
 import {
   Card,
   CardContent,
@@ -12,176 +11,25 @@ import {
 } from '@/components/ui/card';
 import { Building, Link as LinkIcon, Loader2, Copy, Check } from 'lucide-react';
 import type { Organization } from '@/lib/definitions';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
-  createOrganizationAndInvite,
+  getPlatformAveragesAction,
   getAllOrganizations,
 } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-// import { sendOrganizationInviteEmail } from '@/lib/email';
+import CreateOrgForm from './create-org-form';
+import { Table, TableHeader, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
-function CreateOrgForm({ onOrgCreated }: { onOrgCreated: () => void }) {
-  const [orgName, setOrgName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [inviteSent, setInviteSent] = useState(false);
-  // const [generatedLink, setGeneratedLink] = useState('');
-  const [isCopied, setIsCopied] = useState(false);
-  const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // setGeneratedLink('');
-    setIsCopied(false);
-
-    startTransition(async () => {
-      const result = await createOrganizationAndInvite(orgName, userEmail);
-      if (result.success) {
-        // setGeneratedLink(result.signupLink);
-        setInviteSent(true);
-        onOrgCreated();
-        toast({
-          title: 'Invitation Email Sent',
-          description: 'The invitation email has been sent successfully.',
-        });
-        // try {
-        //   const emailResult = await sendOrganizationInviteEmail(
-        //     userEmail,
-        //     orgName
-        //     // result.signupLink
-        //   );
-        //   if (emailResult.success) {
-        //     toast({
-        //       title: 'Invitation Email Sent',
-        //       description: 'The invitation email has been sent successfully.',
-        //     });
-        //   } else {
-        //     toast({
-        //       variant: 'destructive',
-        //       title: 'Failed to Send Invitation Email',
-        //       description: emailResult.error,
-        //     });
-        //   }
-        // } catch (emailError: any) {
-        //   toast({
-        //     variant: 'destructive',
-        //     title: 'Failed to Send Invitation Email',
-        //     description: `Link was generated but the email failed, ${emailError.message}`,
-        //   });
-        // }
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Failed to Generate Link',
-          description: result.message,
-        });
-      }
-    });
+interface PlatformStats {
+  avgDrivers: number;
+  avgMembers: number;
+  totalOrgs: number;
+  _count: {
+    drivers: number;
+    members: number;
+    vehicles: number;
   };
-
-  // const handleCopyToClipboard = () => {
-  //   navigator.clipboard.writeText(generatedLink).then(() => {
-  //     setIsCopied(true);
-  //     setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
-  //   });
-  // };
-
-  const handleResetForm = () => {
-    setOrgName('');
-    setUserEmail('');
-    // setGeneratedLink('');
-    setIsCopied(false);
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Building /> Onboard New Organization
-        </CardTitle>
-        <CardDescription>
-          Generate an invitation link for a new organization and its first user.
-          The organization will be created once the user signs up.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="orgName">Organization Name</Label>
-            <Input
-              id="orgName"
-              value={orgName}
-              onChange={(e) => setOrgName(e.target.value)}
-              placeholder="New Company Inc."
-              required
-              // disabled={isPending || !!generatedLink}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="userEmail">User's Email</Label>
-            <Input
-              id="userEmail"
-              type="email"
-              value={userEmail}
-              onChange={(e) => setUserEmail(e.target.value)}
-              placeholder="user@newco.com"
-              required
-              // disabled={isPending || !!generatedLink}
-            />
-          </div>
-
-          {/* {generatedLink && (
-            <div className="space-y-2 pt-4">
-              <Label htmlFor="signupLink">Share this Signup Link</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="signupLink"
-                  readOnly
-                  value={generatedLink}
-                  className="bg-muted/50"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyToClipboard}
-                >
-                  {isCopied ? (
-                    <Check className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                  <span className="sr-only">Copy to clipboard</span>
-                </Button>
-              </div>
-            </div>
-          )} */}
-        </CardContent>
-        <CardFooter className="gap-4">
-          {!inviteSent ? (
-            <Button
-              type="submit"
-              disabled={isPending || !orgName || !userEmail}
-            >
-              {isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <LinkIcon className="mr-2 h-4 w-4" />
-              )}
-              {isPending ? 'Generating...' : 'Generate Invitation Link'}
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" onClick={handleResetForm}>
-              Generate Another Link
-            </Button>
-          )}
-        </CardFooter>
-      </form>
-    </Card>
-  );
 }
+
 
 export default function SuperAdminClientPage({
   initialOrganizations,
@@ -190,6 +38,27 @@ export default function SuperAdminClientPage({
 }) {
   const [organizations, setOrganizations] =
     useState<Organization[]>(initialOrganizations);
+
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+
+
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const result = await getPlatformAveragesAction();
+        if (result.success && result.data) {
+          setStats(result.data as PlatformStats);
+        } else {
+          setStats(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch platform stats:', error);
+        setStats(null);
+      }
+    }
+    loadStats();
+  }, []);
 
   const [loading, setLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -216,8 +85,31 @@ export default function SuperAdminClientPage({
   };
 
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="mx-auto grid w-full max-w-4xl gap-8">
+    <main className="flex flex-col w-full justify-left items-center gap-4 p-4 md:gap-8 md:p-8">
+      <div className="flex w-full items-center flex-col justify-center md:flex-row sm:flex-row gap-4 mb-4 px-4">
+        <div className="px-4 py-4 bg-[#fff] w-full md:w-full text-dark rounded-md shadow-md">
+        <div className="max-w-sm bg-[#E6F4F1] rounded-md p-2 mb-2">
+          <p className="text-sm font-bold text-[#03624D]">Number of Organization</p>
+          </div>
+          <p className="text-5xl font-bold">{organizations.length}</p>
+        </div>
+
+        <div className="px-4 py-4 bg-[#fff] sm:w-full text-dark rounded-md shadow-md">
+        <div className="max-w-sm bg-[#E6F4F1] rounded-md p-2 mb-2">
+          <p className="text-sm font-bold text-[#03624D]">Average Drivers per Organization</p>
+          </div>
+          <p className="text-5xl font-bold">{ stats?.avgDrivers || 0 }</p>
+        </div>
+
+        <div className="px-4 py-4 bg-[#fff] sm:w-full text-dark rounded-md shadow-md">
+        <div className="max-w-sm bg-[#E6F4F1] rounded-md p-2 mb-2">
+          <p className="text-sm font-bold text-[#03624D]">Average Inspection Officers per Organization</p>
+          </div>
+          <p className="text-5xl font-bold">{ stats?.avgMembers || 0 }</p>
+        </div>
+        
+      </div>
+      <div className="mx-4 w-full gap-8">
         <CreateOrgForm onOrgCreated={() => fetchOrganizations()} />
 
         <Card>
@@ -228,36 +120,46 @@ export default function SuperAdminClientPage({
             <CardDescription>
               View all organizations currently in the system.
             </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center p-6">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {organizations.length > 0 ? (
-                  organizations.map((org) => (
-                    <div
-                      key={org.id}
-                      className="flex items-center justify-between rounded-md border p-3"
-                    >
-                      <div>
-                        <p className="font-medium">{org.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          ID: {org.slug}
-                        </p>
-                      </div>
-                    </div>
-                  ))
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead>Number of Drivers</TableHead>
+                  <TableHead>Number of Inspection Officers</TableHead>
+                  <TableHead>Number of Vehicles</TableHead>
+                  <TableHead>Created at</TableHead>
+                </TableRow>
+              </TableHeader>
+              
+                {loading ? (
+                  <div className="flex items-center justify-center p-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
                 ) : (
-                  <p className="text-muted-foreground p-4 text-center">
-                    No organizations created yet.
-                  </p>
+                  
+                  organizations.length > 0 ? (
+                    organizations.map((org) => (
+                      <TableRow key={org.id}>
+                        <TableCell>{org.name}</TableCell>
+                        <TableCell>{org.slug}</TableCell>
+                        <TableCell>{org._count.drivers}</TableCell>
+                        <TableCell>{org._count.members}</TableCell>
+                        <TableCell>{org._count.vehicles}</TableCell>
+                        <TableCell>{new Date(org.createdAt).toLocaleDateString()}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground p-4 text-center">
+                      No organizations created yet.
+                    </p>
+                  )
                 )}
-              </div>
-            )}
-          </CardContent>
+              
+            </Table>
+            
+          </CardHeader>
+          
         </Card>
       </div>
     </main>

@@ -185,6 +185,14 @@ export interface Organization {
   id: string;
   name: string;
   slug: string;
+  drivers: Driver[];
+  vehicles: Vehicle[];
+  members: MemberData[];
+  _count: {
+    drivers: number;
+    vehicles: number;
+    members: number;
+  };
   createdAt: string;
 }
 
