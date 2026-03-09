@@ -77,7 +77,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <header className="px-4 lg:px-6 h-16 flex items-center bg-[#262626] sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-xl text-primary">
-          <span className="text-yellow-300">FleetCheckr</span>
+          <a href="/" className="text-sm text-gray-400"><img src="/images/FleetCheckr Logo.svg" className="h-12" alt="FleetCheckr" /></a>
         </div>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link href="#features" className="text-md font-medium text-white hover:underline underline-offset-4 flex items-center">

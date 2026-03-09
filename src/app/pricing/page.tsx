@@ -45,14 +45,14 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <AppHeader />
+      {/* <AppHeader /> */}
       <div className="py-20 px-4 flex flex-col items-center justify-center">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold tracking-tight mb-4">
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl text-black">
-            Start your 14-day free trial. Cancel anytime.
+            Start your 30-day free trial. Cancel anytime.
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export default function PricingPage() {
           <CardHeader className="text-center pb-8 border-b bg-gray-50/50 dark:bg-gray-900 border-b-gray-200">
             <CardTitle className="text-2xl font-bold">Pro Plan</CardTitle>
             <div className="mt-4 flex items-baseline justify-center text-5xl font-extrabold tracking-tight">
-              ₦15,000
+              ₦10,000
               <span className="ml-1 text-xl font-medium text-muted-foreground">
                 /mo
               </span>
@@ -101,12 +101,12 @@ export default function PricingPage() {
                   Processing...
                 </>
               ) : (
-                'Start 14-Day Free Trial'
+                'Start 30-Day Free Trial'
               )}
             </Button>
             <p className="mt-4 text-xs text-center text-muted-foreground w-full">
               You will be charged a refundable ₦50 fee to verify your card. The
-              subscription fee of ₦15,000 will be charged automatically in 30
+              subscription fee of ₦10,000 will be charged automatically in 30
               days.
             </p>
           </CardFooter>
