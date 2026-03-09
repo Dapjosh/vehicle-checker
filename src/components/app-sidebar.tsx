@@ -72,7 +72,7 @@ export function AppSidebar({ isSuperAdmin, className }: SidebarProps) {
     <div className="flex h-full flex-col gap-4">
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/dashboard" className="flex items-center gap-2 font-bold text-xl text-[#03624D]">
-          <span>FleetCheckr</span>
+          <img src="/images/FleetCheckr Logo.svg" className="h-10" alt="FleetCheckr" />
         </Link>
       </div>
       <div className="flex-1 overflow-auto py-4">
