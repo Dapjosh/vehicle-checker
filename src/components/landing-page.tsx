@@ -75,7 +75,7 @@ export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen main-wrap">
       {/* Navigation */}
-      <header className="px-4 lg:px-6 h-16 flex items-center bg-[#262626] sticky top-0 z-50">
+      <header className="px-4 lg:px-6 gap-2 h-16 flex items-center bg-[#262626] sticky top-0 z-50">
         <div className="flex items-center gap-2 font-bold text-xl text-primary">
           <a href="/" className="text-sm text-gray-400"><img src="/images/FleetCheckr Logo.svg" className="h-12" alt="FleetCheckr" /></a>
         </div>
@@ -86,7 +86,7 @@ export default function LandingPage() {
           <Link href="#contact" className="text-md font-medium text-white hover:underline underline-offset-4 flex items-center">
             Contact
           </Link>
-          <Link href="/sign-in" className="border border-yellow-300 px-4 py-2 rounded-md text-md font-medium text-yellow-300 hover:bg-yellow-300 hover:text-neutral-900 transition flex items-center">
+          <Link href="/sign-in" className="border border-yellow-300 px-4 py-2 rounded-md text-md font-medium text-yellow-300 hover:bg-yellow-300 w-20 h-10 sm:h-auto sm:w-auto hover:text-neutral-900 transition flex items-center">
             Log In
           </Link>
         </nav>
@@ -120,7 +120,7 @@ export default function LandingPage() {
                   Streamline your vehicle checks, ensure compliance, and manage your fleet with our powerful digital inspection platform.
                 </p>
               </div>
-              <div className="space-x-4 pt-4">
+              <div className="space-y-4 sm:space-x-4 pt-4">
                 <Button className="h-12 px-8 text-lg bg-[#03624C] shadow-lg hover:bg-[#03624C]/80 hover:shadow-xl transition-all hover:-translate-y-0.5" asChild>
                   <Link href="#contact">Request Access <ArrowRight className="ml-2 h-5 w-5"/></Link>
                 </Button>

@@ -29,6 +29,10 @@ interface DriverModalProps {
   onSave: (driver: Partial<Driver>) => Promise<void>;
 }
 
+function capitalizeEachWord(str: string) {
+    return str.replace(/\b\w/g, char => char.toUpperCase());
+}
+
 export function DriverModal({
   isOpen,
   onClose,
@@ -38,12 +42,15 @@ export function DriverModal({
   const [formData, setFormData] = useState<Partial<Driver> | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  
+
   useEffect(() => {
     setFormData(driverData);
   }, [driverData, isOpen]);
 
   const handleSave = () => {
     if (!formData) return;
+    formData.name = capitalizeEachWord(formData.name?.trim() || '');
     startTransition(async () => {
       await onSave(formData);
     });

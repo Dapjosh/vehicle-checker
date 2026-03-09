@@ -875,6 +875,24 @@ export async function saveVehicleAction(vehicle: Partial<Vehicle>) {
   if (!orgId) return { success: false, error: "Not authenticated" };
 
   try {
+
+    const vehiclesRef = adminDb.collection(`organizations/${orgId}/vehicles`);
+
+    if (vehicle.registration) {
+      const regQuery = await vehiclesRef.where("registration", "==", vehicle.registration)
+        .limit(1)
+        .get();
+
+      if (!regQuery.empty) {
+        const isDuplicate = regQuery.docs.some(doc => doc.id !== vehicle.id);
+        if (isDuplicate) {
+          return { success: false, error: "A vehicle with this registration already exists." };
+        }
+
+      }
+    }
+
+      
     const vehicleData = {
       ...vehicle,
       orgId,
@@ -1018,41 +1036,33 @@ export async function searchFleetAction(searchTerm: string, searchType: 'vehicle
     const collectionName = searchType === 'vehicles' ? 'vehicles' : 'drivers';
     const searchField = searchType === 'vehicles' ? 'registration' : 'name';
 
-    // Vehicles usually use uppercase for registration plates, whereas drivers use standard case for names
-    const queryText = searchType === 'vehicles' ? searchTerm.toUpperCase() : searchTerm; 
+    const queryText = searchTerm.toLowerCase(); 
 
-    // Firestore Prefix Search Logic
-    const snapshot = await adminDb.collection(`organizations/${orgId}/${collectionName}`)
-      .where(searchField, '>=', queryText)
-      .where(searchField, '<=', queryText + '\uf8ff')
-      .limit(10) // Limit search results to 10 at a time
-      .get();
+    const snapshot = await adminDb.collection(`organizations/${orgId}/${collectionName}`).get();
 
-    return snapshot.docs.map(doc => { 
+    const allItems = snapshot.docs.map(doc => {
       const data = doc.data();
-
+      
       if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
-        data.createdAt = {
-          seconds: data.createdAt.seconds,
-          nanoseconds: data.createdAt.nanoseconds,
-        };
+        data.createdAt = { seconds: data.createdAt.seconds, nanoseconds: data.createdAt.nanoseconds };
       }
       if (data.updatedAt && typeof data.updatedAt.toMillis === 'function') {
-        data.updatedAt = {
-          seconds: data.updatedAt.seconds,
-          nanoseconds: data.updatedAt.nanoseconds,
-        };
+        data.updatedAt = { seconds: data.updatedAt.seconds, nanoseconds: data.updatedAt.nanoseconds };
       }
-
       if (data.maintenance?.lastServiceDate && typeof data.maintenance.lastServiceDate.toMillis === 'function') {
-        data.maintenance.lastServiceDate = {
-           seconds: data.maintenance.lastServiceDate.seconds,
-           nanoseconds: data.maintenance.lastServiceDate.nanoseconds,
-        };
+        data.maintenance.lastServiceDate = { seconds: data.maintenance.lastServiceDate.seconds, nanoseconds: data.maintenance.lastServiceDate.nanoseconds };
       }
 
-      return { ...data, id: doc.id };
-     });
+      return { id: doc.id, ...data };
+    });
+
+    const filteredItems = allItems.filter(item => {
+      const fieldValue = String((item as Record<string, any>)[searchField] || '').toLowerCase();
+      return fieldValue.includes(queryText);
+    });
+
+
+    return filteredItems.slice(0, 10);
   } catch (error) {
     console.error(`Search for ${searchType} failed:`, error);
     return [];
@@ -1073,14 +1083,7 @@ export async function initializePaystackTransactionAction(email: string) {
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
-        Authorization: `Beare<Popover open={openDriver} onOpenChange={setOpenDriver}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-…                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>r ${process.env.PAYSTACK_SECRET_KEY}`,
+        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({

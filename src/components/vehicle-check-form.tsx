@@ -305,39 +305,7 @@ function InspectionForm({
                       </Command>
                     </PopoverContent>
                   </Popover>
-                    {/* <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-
-                        const selectedVehicle = vehicles.find(
-                          (v) => v.registration === value,
-                        );
-
-                        if (selectedVehicle?.maintenance?.currentOdometer) {
-                          form.setValue(
-                            'currentOdometer',
-                            selectedVehicle.maintenance.currentOdometer,
-                          );
-                        } else {
-                          form.setValue('currentOdometer', '');
-                        }
-                      }}
-                      defaultValue={field.value}
-                      disabled={isFormDisabled}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder='Select a vehicle' />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vehicles.map((v) => (
-                          <SelectItem key={v.id} value={v.registration}>
-                            {v.registration}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select> */}
+                    
                     <FormMessage />
                   </FormItem>
                 )}
@@ -348,25 +316,7 @@ function InspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Driver Name</FormLabel>
-                    {/* <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={isFormDisabled}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder='Select a driver' />
-                        </SelectTrigger>
-                      </FormControl>
-                    </PopoverTrigger>
-                      <SelectContent>
-                        {drivers.map((d) => (
-                          <SelectItem key={d.id} value={d.name}>
-                            {d.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select> */}
+                    
                     <Popover open={openDriver} onOpenChange={setOpenDriver}>
                     
                       <FormControl>
@@ -404,7 +354,7 @@ function InspectionForm({
                             <CommandEmpty>No driver found.</CommandEmpty>
                           )}
                           <CommandGroup>
-                            {!isSearchingDriver && drivers.map((driver) => (
+                            {!isSearchingDriver && driverResults.map((driver) => (
                               <CommandItem
                                 value={driver.name}
                                 key={driver.id}
@@ -413,6 +363,9 @@ function InspectionForm({
                                   setOpenDriver(false);
                                   
                                 }}
+                                className="cursor-pointer hover:!bg-primary
+                                visited:!bg-primary
+                                hover:!text-primary-foreground"
                               >
                                 <Check
                                   className={cn(

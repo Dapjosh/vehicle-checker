@@ -74,6 +74,7 @@ export function VehicleModal({
   const handleSave = () => {
     if (!formData) return;
     startTransition(async () => {
+      formData.registration = formData.registration?.replaceAll(/[^a-zA-Z0-9]+/g, '').toUpperCase() || '';
       await onSave(formData);
     });
   };
@@ -90,7 +91,7 @@ export function VehicleModal({
       serviceDate: newService.serviceDate!,
       serviceType: newService.serviceType!,
       currentOdometer: newService.currentOdometer || 0,
-      serviceMileage: newService.currentOdometer || 0, // Fallback if mileage specific field isn't used
+      serviceMileage: newService.currentOdometer || 0,
       status: 'active',
       serviceCost: newService.serviceCost || 0,
       serviceProvider: newService.serviceProvider || '',
@@ -247,7 +248,7 @@ export function VehicleModal({
                         },
                       }))
                     }
-                  />
+                  /> 
                 </div>
                 <div className='space-y-2'>
                   <Label>Status</Label>
