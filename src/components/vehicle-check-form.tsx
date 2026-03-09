@@ -1,5 +1,5 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -48,12 +48,27 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {  
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select';
+import { Check, ChevronsUpDown} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 import { saveInspectionReport } from '@/app/actions';
 import {
@@ -65,6 +80,9 @@ import {
 } from '@/lib/definitions';
 import React from 'react';
 import { root } from 'postcss';
+import { searchFleetAction } from '@/app/actions';
+
+
 
 // Schema and default values are now managed inside the component that depends on them
 const generateFormSchema = (categories: InspectionCategory[]) => {
@@ -110,7 +128,48 @@ function InspectionForm({
   const [isSaving, startSaveTransition] = useTransition();
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
 
+
+  const [openVehicle, setOpenVehicle] = useState(false);
+  const [searchVehicleQuery, setSearchVehicleQuery] = useState("");
+  const [vehicleResults, setVehicleResults] = useState<Vehicle[]>(vehicles || []);
+  const [isSearchingVehicle, setIsSearchingVehicle] = useState(false);
+
+  useEffect(() => {
+    if (!searchVehicleQuery) {
+      setVehicleResults(vehicles);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearchingVehicle(true);
+      const results = await searchFleetAction(searchVehicleQuery, 'vehicles');
+      setVehicleResults(results);
+      setIsSearchingVehicle(false);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchVehicleQuery, vehicles]);
+
   const { toast } = useToast();
+
+  const [openDriver, setOpenDriver] = useState(false);
+  const [searchDriverQuery, setSearchDriverQuery] = useState("");
+  const [driverResults, setDriverResults] = useState<Driver[]>(drivers || []);
+  const [isSearchingDriver, setIsSearchingDriver] = useState(false);
+
+  useEffect(() => {
+    if (!searchDriverQuery) {
+      setDriverResults(drivers);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearchingDriver(true);
+      const results = await searchFleetAction(searchDriverQuery, 'drivers');
+      setDriverResults(results);
+      setIsSearchingDriver(false);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchDriverQuery, drivers]);
 
   const formSchema = React.useMemo(
     () => generateFormSchema(categories),
@@ -182,7 +241,71 @@ function InspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle Registration</FormLabel>
-                    <Select
+                    <Popover open={openVehicle} onOpenChange={setOpenVehicle}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openVehicle}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={isFormDisabled}
+                        >
+                          {field.value ? field.value : "Search for a vehicle..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[400px] p-0">
+                      <Command shouldFilter={false}>
+                        <CommandInput 
+                          placeholder="Type registration number..." 
+                          value={searchVehicleQuery}
+                          onValueChange={setSearchVehicleQuery}
+                        />
+                        <CommandList>
+                          {isSearchingVehicle && (
+                            <div className="p-4 text-center text-sm flex justify-center items-center">
+                               <Loader2 className="h-4 w-4 animate-spin mr-2" /> Searching...
+                            </div>
+                          )}
+                          {!isSearchingVehicle && vehicleResults.length === 0 && (
+                            <CommandEmpty>No vehicle found.</CommandEmpty>
+                          )}
+                          <CommandGroup>
+                            {!isSearchingVehicle && vehicleResults.map((vehicle) => (
+                              <CommandItem
+                                value={vehicle.registration}
+                                key={vehicle.id}
+                                onSelect={(value) => {
+                                  field.onChange(value);
+                                  // Auto-populate odometer
+                                  if (vehicle.maintenance?.currentOdometer) {
+                                    form.setValue("currentOdometer", vehicle.maintenance.currentOdometer.toString());
+                                  } else {
+                                    form.setValue("currentOdometer", "");
+                                  }
+                                  setOpenVehicle(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    vehicle.registration === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {vehicle.registration}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                    {/* <Select
                       onValueChange={(value) => {
                         field.onChange(value);
 
@@ -214,7 +337,7 @@ function InspectionForm({
                           </SelectItem>
                         ))}
                       </SelectContent>
-                    </Select>
+                    </Select> */}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -225,7 +348,7 @@ function InspectionForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Driver Name</FormLabel>
-                    <Select
+                    {/* <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       disabled={isFormDisabled}
@@ -235,6 +358,7 @@ function InspectionForm({
                           <SelectValue placeholder='Select a driver' />
                         </SelectTrigger>
                       </FormControl>
+                    </PopoverTrigger>
                       <SelectContent>
                         {drivers.map((d) => (
                           <SelectItem key={d.id} value={d.name}>
@@ -242,7 +366,68 @@ function InspectionForm({
                           </SelectItem>
                         ))}
                       </SelectContent>
-                    </Select>
+                    </Select> */}
+                    <Popover open={openDriver} onOpenChange={setOpenDriver}>
+                    
+                      <FormControl>
+                        <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openDriver}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                          disabled={isFormDisabled}
+                        >
+                          {field.value ? field.value : "Search for a driver..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                        </PopoverTrigger>
+                      </FormControl>
+                      
+                      <PopoverContent className="w-[400px] p-0">
+                      <Command shouldFilter={false}>
+                        <CommandInput 
+                          placeholder="Type driver name..." 
+                          value={searchDriverQuery}
+                          onValueChange={setSearchDriverQuery}
+                        />
+                        <CommandList>
+                          {isSearchingDriver && (
+                            <div className="p-4 text-center text-sm flex justify-center items-center">
+                               <Loader2 className="h-4 w-4 animate-spin mr-2" /> Searching...
+                            </div>
+                          )}
+                          {!isSearchingDriver && drivers.length === 0 && (
+                            <CommandEmpty>No driver found.</CommandEmpty>
+                          )}
+                          <CommandGroup>
+                            {!isSearchingDriver && drivers.map((driver) => (
+                              <CommandItem
+                                value={driver.name}
+                                key={driver.id}
+                                onSelect={(value) => {
+                                  field.onChange(value);
+                                  setOpenDriver(false);
+                                  
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    driver.name === field.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                  {driver.name}
+                                </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

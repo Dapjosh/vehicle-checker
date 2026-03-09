@@ -941,19 +941,19 @@ export async function deleteVehicleAction(vehicleId: string) {
 //   }
 // }
 
-export async function addDriver(
-  name: string,
-): Promise<{ success: boolean; message: string }> {
-  const formattedName = formatDriverName(name);
-  return addFleetItem("drivers", { name: formattedName });
-}
+// export async function addDriver(
+//   name: string,
+// ): Promise<{ success: boolean; message: string }> {
+//   const formattedName = formatDriverName(name);
+//   return addFleetItem("drivers", { name: formattedName });
+// }
 
-export async function addVehicle(
-  registration: string,
-): Promise<{ success: boolean; message: string }> {
-  const formattedRegistration = formatVehicleRegistration(registration);
-  return addFleetItem("vehicles", { registration: formattedRegistration });
-}
+// export async function addVehicle(
+//   registration: string,
+// ): Promise<{ success: boolean; message: string }> {
+//   const formattedRegistration = formatVehicleRegistration(registration);
+//   return addFleetItem("vehicles", { registration: formattedRegistration });
+// }
 
 async function deleteFleetItem(
   collectionName: "drivers" | "vehicles",
@@ -1010,11 +1010,56 @@ export async function deleteVehicle(
   return deleteFleetItem("vehicles", vehicleId);
 }
 
+export async function searchFleetAction(searchTerm: string, searchType: 'vehicles' | 'drivers' = 'vehicles'): Promise<any[]> {
+  const { orgId } = await auth();
+  if (!orgId || !searchTerm) return [];
 
+  try {
+    const collectionName = searchType === 'vehicles' ? 'vehicles' : 'drivers';
+    const searchField = searchType === 'vehicles' ? 'registration' : 'name';
 
-//
+    // Vehicles usually use uppercase for registration plates, whereas drivers use standard case for names
+    const queryText = searchType === 'vehicles' ? searchTerm.toUpperCase() : searchTerm; 
+
+    // Firestore Prefix Search Logic
+    const snapshot = await adminDb.collection(`organizations/${orgId}/${collectionName}`)
+      .where(searchField, '>=', queryText)
+      .where(searchField, '<=', queryText + '\uf8ff')
+      .limit(10) // Limit search results to 10 at a time
+      .get();
+
+    return snapshot.docs.map(doc => { 
+      const data = doc.data();
+
+      if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
+        data.createdAt = {
+          seconds: data.createdAt.seconds,
+          nanoseconds: data.createdAt.nanoseconds,
+        };
+      }
+      if (data.updatedAt && typeof data.updatedAt.toMillis === 'function') {
+        data.updatedAt = {
+          seconds: data.updatedAt.seconds,
+          nanoseconds: data.updatedAt.nanoseconds,
+        };
+      }
+
+      if (data.maintenance?.lastServiceDate && typeof data.maintenance.lastServiceDate.toMillis === 'function') {
+        data.maintenance.lastServiceDate = {
+           seconds: data.maintenance.lastServiceDate.seconds,
+           nanoseconds: data.maintenance.lastServiceDate.nanoseconds,
+        };
+      }
+
+      return { ...data, id: doc.id };
+     });
+  } catch (error) {
+    console.error(`Search for ${searchType} failed:`, error);
+    return [];
+  }
+}
+
 // Payments
-// ============================================================================================================================================================
 
 export async function initializePaystackTransactionAction(email: string) {
   const { orgId } = await auth();
@@ -1028,7 +1073,14 @@ export async function initializePaystackTransactionAction(email: string) {
     const response = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        Authorization: `Beare<Popover open={openDriver} onOpenChange={setOpenDriver}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+…                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>r ${process.env.PAYSTACK_SECRET_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
