@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,9 +9,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Loader2, Truck, Calendar, Trash2, Edit, Plus } from 'lucide-react';
+import {
+  Loader2,
+  Truck,
+  Search,
+  Calendar,
+  Trash2,
+  Edit,
+  Plus,
+} from 'lucide-react';
 import type { Vehicle } from '@/lib/definitions';
 import { useInfiniteScroll } from '../../hooks/use-infinite-scroll';
+import { searchFleetAction } from '@/app/actions';
+import { Input } from '@/components/ui/input';
 
 interface VehicleListProps {
   vehicles: Vehicle[];
@@ -34,6 +44,26 @@ export function VehicleList({
 }: VehicleListProps) {
   const lastElementRef = useInfiniteScroll(onLoadMore, hasMore, loadingMore);
 
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState<Vehicle[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (!search) {
+      setResults([]);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchFleetAction(search, 'vehicles');
+      setResults(results as Vehicle[]);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search]);
+
+  const displayedVehicles = search ? results : vehicles;
+
   return (
     <div className='space-y-4'>
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
@@ -49,6 +79,20 @@ export function VehicleList({
         </Button>
       </div>
 
+      <div className='relative w-full max-w-md'>
+        <Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
+        <Input
+          type='search'
+          placeholder='Search by vehicle registration number...'
+          className='pl-8 w-full bg-white'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {isSearching && (
+          <Loader2 className='absolute right-2.5 z-40 top-2.5 h-4 w-4 animate-spin text-muted-foreground' />
+        )}
+      </div>
+
       <div className='border rounded-lg overflow-hidden bg-card'>
         <Table>
           <TableHeader>
@@ -62,7 +106,7 @@ export function VehicleList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vehicles.length === 0 ? (
+            {displayedVehicles.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>
                   <div className='p-8 text-center text-muted-foreground italic flex flex-col items-center gap-2'>
@@ -72,7 +116,7 @@ export function VehicleList({
                 </TableCell>
               </TableRow>
             ) : (
-              vehicles.map((vehicle, index) => {
+              displayedVehicles.map((vehicle, index) => {
                 const isLast = index === vehicles.length - 1;
                 return (
                   <TableRow

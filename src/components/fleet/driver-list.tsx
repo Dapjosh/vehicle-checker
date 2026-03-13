@@ -1,10 +1,19 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Trash2, ChevronRight, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Loader2,
+  User,
+  Trash2,
+  ChevronRight,
+  Plus,
+  Search,
+} from 'lucide-react';
 import type { Driver } from '@/lib/definitions';
 import { useInfiniteScroll } from '../../hooks/use-infinite-scroll';
+import { searchFleetAction } from '@/app/actions';
 
 interface DriverListProps {
   drivers: Driver[];
@@ -27,6 +36,26 @@ export function DriverList({
 }: DriverListProps) {
   const lastElementRef = useInfiniteScroll(onLoadMore, hasMore, loadingMore);
 
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState<Driver[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  useEffect(() => {
+    if (!search) {
+      setResults([]);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchFleetAction(search, 'drivers');
+      setResults(results as Driver[]);
+      setIsSearching(false);
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [search]);
+
+  const displayedDrivers = search ? results : drivers;
+
   return (
     <div className='space-y-4'>
       <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
@@ -42,14 +71,28 @@ export function DriverList({
         </Button>
       </div>
 
+      <div className='relative w-full max-w-md'>
+        <Search className='absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground' />
+        <Input
+          type='search'
+          placeholder='Search by driver name...'
+          className='pl-8 w-full bg-white'
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        {isSearching && (
+          <Loader2 className='absolute right-2.5 z-40 top-2.5 h-4 w-4 animate-spin text-muted-foreground' />
+        )}
+      </div>
+
       <div className='border rounded-lg overflow-hidden divide-y bg-card'>
-        {drivers.length === 0 ? (
+        {displayedDrivers.length === 0 ? (
           <div className='p-8 text-center text-muted-foreground italic flex flex-col items-center gap-2'>
             <User className='h-10 w-10 opacity-20' />
             No drivers registered yet.
           </div>
         ) : (
-          drivers.map((driver, index) => {
+          displayedDrivers.map((driver, index) => {
             const isLast = index === drivers.length - 1;
             return (
               <div

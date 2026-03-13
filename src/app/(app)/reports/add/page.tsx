@@ -44,18 +44,20 @@ export default async function AddNewReports() {
       pageContent = (
         <>
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">
+            <h2 className='text-3xl font-bold tracking-tight'>
               Inspection Checklist
             </h2>
-            <p className="text-muted-foreground">
+            <p className='text-muted-foreground'>
               Complete the checklist below to save an inspection report.
             </p>
           </div>
-          <div className="w-full">
+          <div className='w-full'>
             <VehicleCheckForm
               categories={checklistResult.data}
-              drivers={drivers}
-              vehicles={vehicles}
+              drivers={drivers.sort((a, b) => a.name.localeCompare(b.name))}
+              vehicles={vehicles.sort((a, b) =>
+                a.registration.localeCompare(b.registration),
+              )}
             />
           </div>
         </>
@@ -67,10 +69,9 @@ export default async function AddNewReports() {
   }
 
   return (
-    <div className="flex flex-col">
-    
-      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <div className="mx-auto grid w-full max-w-4xl gap-4">{pageContent}</div>
+    <div className='flex flex-col'>
+      <main className='flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8'>
+        <div className='mx-auto grid w-full gap-4'>{pageContent}</div>
       </main>
     </div>
   );

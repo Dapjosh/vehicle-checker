@@ -1,0 +1,677 @@
+import { useState, useTransition, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React from 'react';
+import {
+  Loader2,
+  CheckCircle,
+  XCircle,
+  RotateCw,
+  Ban,
+  Wrench,
+  Save,
+  AlertTriangle,
+  Router,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { useToast } from '@/hooks/use-toast';
+import { Input } from '@/components/ui/input';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  iconMap,
+  type InspectionCategory,
+  type Driver,
+  type Vehicle,
+  UserData,
+} from '@/lib/definitions';
+import { z } from 'zod';
+import { saveInspectionReport, searchFleetAction } from '@/app/actions';
+
+const generateFormSchema = (categories: InspectionCategory[]) => {
+  const schemaFields: Record<string, z.ZodType<any, any, any>> = {
+    vehicleRegistration: z.string().min(1, 'Please select a vehicle.'),
+    inspectingOfficer: z.string().min(1, 'Please select an inspector.'),
+    currentOdometer: z.coerce.number().min(1, 'Odometer reading is required.'),
+    driverName: z.string().min(1, 'Please select a driver.'),
+    finalVerdict: z.enum(['PASS', 'FAIL'], {
+      required_error: 'You must select a final verdict.',
+    }),
+  };
+
+  categories.forEach((category) => {
+    category.items.forEach((item) => {
+      schemaFields[`${item.id}_status`] = z.enum(
+        ['Ok', 'Needs Repair', 'not ok'],
+        {
+          required_error: 'Please select a status for every item.',
+        },
+      );
+      schemaFields[`${item.id}_notes`] = z
+        .string()
+        .max(200, 'Notes must be 200 characters or less.')
+        .optional();
+    });
+  });
+
+  return z.object(schemaFields);
+};
+
+type FormValues = z.infer<ReturnType<typeof generateFormSchema>>;
+
+export default function InspectionForm({
+  categories,
+  drivers,
+  vehicles,
+}: {
+  categories: InspectionCategory[];
+  drivers: Driver[];
+  vehicles: Vehicle[];
+}) {
+  const [isSaving, startSaveTransition] = useTransition();
+  const [isFormSubmitted, setIsFormSubmitted] = useState(false);
+
+  const [openVehicle, setOpenVehicle] = useState(false);
+  const [searchVehicleQuery, setSearchVehicleQuery] = useState('');
+  const [vehicleResults, setVehicleResults] = useState<Vehicle[]>(
+    vehicles || [],
+  );
+  const [isSearchingVehicle, setIsSearchingVehicle] = useState(false);
+
+  useEffect(() => {
+    if (!searchVehicleQuery) {
+      setVehicleResults(vehicles);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearchingVehicle(true);
+      const results = await searchFleetAction(searchVehicleQuery, 'vehicles');
+      setVehicleResults(results);
+      setIsSearchingVehicle(false);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchVehicleQuery, vehicles]);
+
+  const { toast } = useToast();
+
+  const [openDriver, setOpenDriver] = useState(false);
+  const [searchDriverQuery, setSearchDriverQuery] = useState('');
+  const [driverResults, setDriverResults] = useState<Driver[]>(drivers || []);
+  const [isSearchingDriver, setIsSearchingDriver] = useState(false);
+
+  useEffect(() => {
+    if (!searchDriverQuery) {
+      setDriverResults(drivers);
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setIsSearchingDriver(true);
+      const results = await searchFleetAction(searchDriverQuery, 'drivers');
+      setDriverResults(results);
+      setIsSearchingDriver(false);
+    }, 300);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchDriverQuery, drivers]);
+
+  const formSchema = React.useMemo(
+    () => generateFormSchema(categories),
+    [categories],
+  );
+
+  const defaultValues = React.useMemo(() => {
+    const values: Record<string, string | undefined | number> = {
+      vehicleRegistration: '',
+      currentOdometer: '',
+      inspectingOfficer: '',
+      driverName: '',
+      finalVerdict: undefined,
+    };
+    categories.forEach((category) => {
+      category.items.forEach((item) => {
+        values[`${item.id}_status`] = undefined; // No default status
+        values[`${item.id}_notes`] = '';
+      });
+    });
+    return values as FormValues;
+  }, [categories]);
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues,
+  });
+
+  const onSubmit = (data: FormValues) => {
+    startSaveTransition(async () => {
+      const saveResult = await saveInspectionReport(data, categories);
+      if (saveResult.success) {
+        toast({
+          title: 'Report Saved',
+          description: saveResult.message,
+        });
+        setIsFormSubmitted(true);
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error Saving Report',
+          description: saveResult.message,
+        });
+      }
+    });
+  };
+
+  const handleResetForm = () => {
+    window.location.reload();
+  };
+
+  const isFormDisabled = isFormSubmitted || isSaving;
+
+  return (
+    <div className='space-y-8 w-full'>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
+          <Card>
+            <CardHeader>
+              <CardTitle>Inspection Details</CardTitle>
+              <CardDescription>
+                Enter the vehicle and driver information for this inspection.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className='grid gap-6 md:grid-cols-2'>
+              <FormField
+                control={form.control}
+                name='vehicleRegistration'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Registration</FormLabel>
+                    <Popover open={openVehicle} onOpenChange={setOpenVehicle}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant='outline'
+                            role='combobox'
+                            aria-expanded={openVehicle}
+                            className={cn(
+                              'w-full justify-between',
+                              !field.value && 'text-muted-foreground',
+                            )}
+                            disabled={isFormDisabled}
+                          >
+                            {field.value
+                              ? field.value
+                              : 'Search for a vehicle...'}
+                            <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className='w-[400px] p-0'>
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder='Type registration number...'
+                            value={searchVehicleQuery}
+                            onValueChange={setSearchVehicleQuery}
+                          />
+                          <CommandList>
+                            {isSearchingVehicle && (
+                              <div className='p-4 text-center text-sm flex justify-center items-center'>
+                                <Loader2 className='h-4 w-4 animate-spin mr-2' />{' '}
+                                Searching...
+                              </div>
+                            )}
+                            {!isSearchingVehicle &&
+                              vehicleResults.length === 0 && (
+                                <CommandEmpty>No vehicle found.</CommandEmpty>
+                              )}
+                            <CommandGroup>
+                              {!isSearchingVehicle &&
+                                vehicleResults.map((vehicle) => (
+                                  <CommandItem
+                                    value={vehicle.registration}
+                                    key={vehicle.id}
+                                    onSelect={(value) => {
+                                      field.onChange(value);
+                                      // Auto-populate odometer
+                                      if (
+                                        vehicle.maintenance?.currentOdometer
+                                      ) {
+                                        form.setValue(
+                                          'currentOdometer',
+                                          vehicle.maintenance.currentOdometer.toString(),
+                                        );
+                                      } else {
+                                        form.setValue('currentOdometer', '');
+                                      }
+                                      setOpenVehicle(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        vehicle.registration === field.value
+                                          ? 'opacity-100'
+                                          : 'opacity-0',
+                                      )}
+                                    />
+                                    {vehicle.registration}
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='driverName'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Driver Name</FormLabel>
+
+                    <Popover open={openDriver} onOpenChange={setOpenDriver}>
+                      <FormControl>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant='outline'
+                            role='combobox'
+                            aria-expanded={openDriver}
+                            className={cn(
+                              'w-full justify-between',
+                              !field.value && 'text-muted-foreground',
+                            )}
+                            disabled={isFormDisabled}
+                          >
+                            {field.value
+                              ? field.value
+                              : 'Search for a driver...'}
+                            <ChevronsUpDown className='ml-2 h-4 w-4 shrink-0 opacity-50' />
+                          </Button>
+                        </PopoverTrigger>
+                      </FormControl>
+
+                      <PopoverContent className='w-[400px] p-0'>
+                        <Command shouldFilter={false}>
+                          <CommandInput
+                            placeholder='Type driver name...'
+                            value={searchDriverQuery}
+                            onValueChange={setSearchDriverQuery}
+                          />
+                          <CommandList>
+                            {isSearchingDriver && (
+                              <div className='p-4 text-center text-sm flex justify-center items-center'>
+                                <Loader2 className='h-4 w-4 animate-spin mr-2' />{' '}
+                                Searching...
+                              </div>
+                            )}
+                            {!isSearchingDriver && drivers.length === 0 && (
+                              <CommandEmpty>No driver found.</CommandEmpty>
+                            )}
+                            <CommandGroup>
+                              {!isSearchingDriver &&
+                                driverResults.map((driver) => (
+                                  <CommandItem
+                                    value={driver.name}
+                                    key={driver.id}
+                                    onSelect={(value) => {
+                                      field.onChange(value);
+                                      setOpenDriver(false);
+                                    }}
+                                    className='cursor-pointer hover:!bg-primary
+                                visited:!bg-primary
+                                hover:!text-primary-foreground'
+                                  >
+                                    <Check
+                                      className={cn(
+                                        'mr-2 h-4 w-4',
+                                        driver.name === field.value
+                                          ? 'opacity-100'
+                                          : 'opacity-0',
+                                      )}
+                                    />
+                                    {driver.name}
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='currentOdometer'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Odometer (km)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        placeholder='e.g., 125000'
+                        {...field}
+                        disabled={isFormDisabled}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='inspectingOfficer'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Inspecting Officer</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='text'
+                        placeholder='e.g., John Doe'
+                        {...field}
+                        disabled={isFormDisabled}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+          <div className='bg-card text-card-foreground shadow-sm border p-6 rounded-lg'>
+            <Accordion
+              type='multiple'
+              defaultValue={categories.map((c) => c.id)}
+              className='w-full'
+            >
+              {categories.map((category) => {
+                const IconComponent = iconMap[category.icon];
+                return (
+                  <AccordionItem value={category.id} key={category.id}>
+                    <AccordionTrigger
+                      className='text-xl font-semibold hover:no-underline'
+                      disabled={isFormDisabled}
+                    >
+                      <div className='flex items-center gap-3'>
+                        {IconComponent && (
+                          <IconComponent className='h-6 w-6 text-primary' />
+                        )}
+                        {category.name}
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className='divide-y divide-border'>
+                        {category.items.map((item) => (
+                          <div
+                            className='grid gap-4 py-6 md:grid-cols-2'
+                            key={item.id}
+                          >
+                            <div>
+                              <h4 className='font-medium'>{item.name}</h4>
+                              <p className='text-sm text-muted-foreground'>
+                                {item.description}
+                              </p>
+                            </div>
+                            <div className='space-y-4'>
+                              <FormField
+                                control={form.control}
+                                name={`${item.id}_status` as keyof FormValues}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <div className='grid grid-cols-5 gap-2 md:gap-4'>
+                                        <Button
+                                          type='button'
+                                          onClick={() => field.onChange('Ok')}
+                                          variant={
+                                            field.value === 'Ok'
+                                              ? 'default'
+                                              : 'outline'
+                                          }
+                                          className='col-span-2 h-full flex-col p-3 text-sm font-medium data-[variant=default]:bg-accent data-[variant=default]:text-accent-foreground data-[variant=default]:hover:bg-accent/90'
+                                          disabled={isFormDisabled}
+                                        >
+                                          <CheckCircle className='mb-1 h-5 w-5' />
+                                          Ok
+                                        </Button>
+                                        <Button
+                                          type='button'
+                                          onClick={() =>
+                                            field.onChange('Needs Repair')
+                                          }
+                                          variant={
+                                            field.value === 'Needs Repair'
+                                              ? 'default'
+                                              : 'outline'
+                                          }
+                                          className='col-span-2 h-full flex-col p-3 text-sm font-medium data-[variant=default]:bg-amber-500 data-[variant=default]:text-white data-[variant=default]:hover:bg-amber-600'
+                                          disabled={isFormDisabled}
+                                        >
+                                          <Wrench className='mb-1 h-5 w-5' />
+                                          Needs Repair
+                                        </Button>
+                                        <Button
+                                          type='button'
+                                          onClick={() =>
+                                            field.onChange('not ok')
+                                          }
+                                          variant={
+                                            field.value === 'not ok'
+                                              ? 'destructive'
+                                              : 'outline'
+                                          }
+                                          className='col-span-1 h-full flex-col p-3 text-sm font-medium'
+                                          disabled={isFormDisabled}
+                                        >
+                                          <XCircle className='mb-1 h-5 w-5' />
+                                          Not OK
+                                        </Button>
+                                      </div>
+                                    </FormControl>
+                                    <FormMessage className='text-center' />
+                                  </FormItem>
+                                )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name={`${item.id}_notes` as keyof FormValues}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Textarea
+                                        placeholder='Add notes...'
+                                        className='resize-none h-10 min-h-0'
+                                        {...field}
+                                        disabled={isFormDisabled}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </div>
+
+          <Separator />
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Final Verdict</CardTitle>
+              <CardDescription>
+                Provide the final pass or fail status for the inspection.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name='finalVerdict'
+                render={({ field }) => (
+                  <FormItem className='space-y-3'>
+                    <FormControl>
+                      <div className='flex justify-center gap-4'>
+                        <Button
+                          type='button'
+                          onClick={() => field.onChange('PASS')}
+                          variant={
+                            field.value === 'PASS' ? 'default' : 'outline'
+                          }
+                          className='flex h-auto w-32 flex-col items-center p-4 data-[variant=default]:bg-accent data-[variant=default]:text-accent-foreground data-[variant=default]:hover:bg-accent/90'
+                          disabled={isFormDisabled}
+                        >
+                          <CheckCircle className='mb-3 h-6 w-6' />
+                          Pass
+                        </Button>
+                        <Button
+                          type='button'
+                          onClick={() => field.onChange('FAIL')}
+                          variant={
+                            field.value === 'FAIL' ? 'destructive' : 'outline'
+                          }
+                          className='flex h-auto w-32 flex-col items-center p-4'
+                          disabled={isFormDisabled}
+                        >
+                          <XCircle className='mb-3 h-6 w-6' />
+                          Fail
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <div className='pt-2 text-center'>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+
+          {!isFormSubmitted && (
+            <div className='flex flex-col items-center gap-4 pt-4'>
+              <Button
+                type='submit'
+                size='lg'
+                disabled={isFormDisabled}
+                className='w-full md:w-auto'
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                    Saving Report...
+                  </>
+                ) : (
+                  <>
+                    <Save className='mr-2 h-4 w-4' />
+                    Save Inspection Report
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </form>
+      </Form>
+
+      {isFormSubmitted && (
+        <Card className='w-full animate-in fade-in-50 slide-in-from-bottom-10 duration-500'>
+          <CardHeader className='text-center'>
+            <div className='mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-green-500/10 mb-4'>
+              <CheckCircle className='h-8 w-8 text-green-500' />
+            </div>
+            <CardTitle>Submission Complete</CardTitle>
+            <CardDescription>
+              Your inspection report has been saved.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className='flex justify-center'>
+            <Button size='lg' variant='outline' onClick={handleResetForm}>
+              <RotateCw className='mr-2 h-4 w-4' />
+              Start New Inspection
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isFormDisabled && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type='button'
+                variant='outline'
+                size='icon'
+                onClick={() => form.reset(defaultValues)}
+                className='fixed bottom-6 left-6 z-50 h-14 w-14 rounded-full shadow-lg'
+              >
+                <RotateCw className='h-6 w-6' />
+                <span className='sr-only'>Reset Form</span>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side='right'>
+              <p>Reset Form</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+    </div>
+  );
+}
