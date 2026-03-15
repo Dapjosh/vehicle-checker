@@ -1,7 +1,7 @@
-"use server";
+'use server';
 
-import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
-import { revalidatePath } from "next/cache";
+import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
+import { revalidatePath } from 'next/cache';
 import {
   type InspectionCategory,
   InspectionReportSummary,
@@ -12,15 +12,15 @@ import {
   type Driver,
   InspectionItemWithStatus,
   InspectionReport,
-} from "@/lib/definitions";
+} from '@/lib/definitions';
 
-import { adminDb } from "@/lib/firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { v4 as uuidv4 } from "uuid";
-import { SUPER_ADMIN_UID, NEXT_PUBLIC_BASE_URL } from "@/lib/config";
-import { getChecklist } from "@/lib/firestore";
-import { redirect } from "next/dist/server/api-utils";
-import { sendLeadEmail } from "@/lib/email";
+import { adminDb } from '@/lib/firebase-admin';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { v4 as uuidv4 } from 'uuid';
+import { SUPER_ADMIN_UID, NEXT_PUBLIC_BASE_URL } from '@/lib/config';
+import { getChecklist } from '@/lib/firestore';
+import { redirect } from 'next/dist/server/api-utils';
+import { sendLeadEmail } from '@/lib/email';
 
 // =================================================================================
 // Helper Functions
@@ -37,9 +37,9 @@ function slugify(text: string): string {
     .toString()
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, "-") // Replace spaces with -
-    .replace(/[^\w-]+/g, "") // Remove all non-word chars
-    .replace(/--+/g, "-"); // Replace multiple - with single -
+    .replace(/\s+/g, '-') // Replace spaces with -
+    .replace(/[^\w-]+/g, '') // Remove all non-word chars
+    .replace(/--+/g, '-'); // Replace multiple - with single -
 }
 
 /**
@@ -49,12 +49,12 @@ function slugify(text: string): string {
  * @returns The formatted name.
  */
 function formatDriverName(name: string): string {
-  if (!name) return "";
+  if (!name) return '';
   return name
     .toLowerCase()
-    .split(" ")
+    .split(' ')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+    .join(' ');
 }
 
 /**
@@ -64,8 +64,8 @@ function formatDriverName(name: string): string {
  * @returns The formatted registration.
  */
 function formatVehicleRegistration(registration: string): string {
-  if (!registration) return "";
-  return registration.replace(/[\s-]+/g, "").toUpperCase();
+  if (!registration) return '';
+  return registration.replace(/[\s-]+/g, '').toUpperCase();
 }
 
 export async function getDashboardStats() {
@@ -73,7 +73,7 @@ export async function getDashboardStats() {
   const user = await currentUser();
 
   if (!userId || !user) {
-    return { success: false, error: "Not authenticated" };
+    return { success: false, error: 'Not authenticated' };
   }
 
   const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
@@ -87,20 +87,30 @@ export async function getDashboardStats() {
     };
 
     if (isSuperAdmin) {
-
-      const orgsSnapshot = await adminDb.collection('organizations').count().get();
-      const reportsSnapshot = await adminDb.collectionGroup('inspections').count().get();
+      const orgsSnapshot = await adminDb
+        .collection('organizations')
+        .count()
+        .get();
+      const reportsSnapshot = await adminDb
+        .collectionGroup('inspections')
+        .count()
+        .get();
 
       stats.organizations = orgsSnapshot.data().count;
       stats.reports = reportsSnapshot.data().count;
     } else {
-
-      if (!orgId) return { success: false, error: "No organization found" };
+      if (!orgId) return { success: false, error: 'No organization found' };
 
       const orgRef = adminDb.collection('organizations').doc(orgId);
 
-      const reportsSnapshot = await orgRef.collection('inspections').count().get();
-      const vehiclesSnapshot = await orgRef.collection('vehicles').count().get();
+      const reportsSnapshot = await orgRef
+        .collection('inspections')
+        .count()
+        .get();
+      const vehiclesSnapshot = await orgRef
+        .collection('vehicles')
+        .count()
+        .get();
       const driversSnapshot = await orgRef.collection('drivers').count().get();
 
       stats.reports = reportsSnapshot.data().count;
@@ -110,8 +120,8 @@ export async function getDashboardStats() {
 
     return { success: true, data: stats, isSuperAdmin };
   } catch (error: any) {
-    console.error("Error fetching stats:", error);
-    return { success: false, error: "Failed to load dashboard statistics" };
+    console.error('Error fetching stats:', error);
+    return { success: false, error: 'Failed to load dashboard statistics' };
   }
 }
 
@@ -126,12 +136,12 @@ export async function getReports(): Promise<{
 }> {
   const { orgId } = await auth(); // Get orgId securely
   if (!orgId) {
-    return { success: false, error: "Not authorized" };
+    return { success: false, error: 'Not authorized' };
   }
 
   try {
     const reportsRef = adminDb.collection(`organizations/${orgId}/inspections`);
-    const q = reportsRef.orderBy("submittedAt", "desc");
+    const q = reportsRef.orderBy('submittedAt', 'desc');
     const snapshot = await q.get();
 
     // return snapshot.docs.map((doc) => ({
@@ -157,31 +167,31 @@ export async function getReports(): Promise<{
 
     return { success: true, data: reports };
   } catch (error: any) {
-    console.error("Error fetching reports:", error);
+    console.error('Error fetching reports:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function submitLeadAction(formData: FormData) {
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
-  const companyName = formData.get("companyName") as string;
-  const fleetSize = formData.get("fleetSize") as string;
-  const message = formData.get("message") as string;
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  const companyName = formData.get('companyName') as string;
+  const fleetSize = formData.get('fleetSize') as string;
+  const message = formData.get('message') as string;
 
   if (!name || !email || !companyName) {
-    return { success: false, error: "Missing required fields" };
+    return { success: false, error: 'Missing required fields' };
   }
 
   try {
     // 1. Save to Firestore 'leads' collection
-    await adminDb.collection("leads").add({
+    await adminDb.collection('leads').add({
       name,
       email,
       companyName,
       fleetSize,
       message,
-      status: "new", // new, contacted, onboarded
+      status: 'new', // new, contacted, onboarded
       createdAt: FieldValue.serverTimestamp(),
     });
 
@@ -199,10 +209,10 @@ export async function submitLeadAction(formData: FormData) {
 
     return { success: true };
   } catch (error: any) {
-    console.error("Error submitting lead:", error);
+    console.error('Error submitting lead:', error);
     return {
       success: false,
-      error: "Failed to submit request. Please try again.",
+      error: 'Failed to submit request. Please try again.',
     };
   }
 }
@@ -217,7 +227,7 @@ export async function saveInspectionReport(
     return {
       success: false,
       message:
-        "User is not authenticated or does not belong to an organization.",
+        'User is not authenticated or does not belong to an organization.',
     };
   }
 
@@ -235,8 +245,8 @@ export async function saveInspectionReport(
           description: item.description,
           categoryId: category.id,
           categoryName: category.name,
-          status: data[`${item.id}_status`] || "not ok",
-          notes: data[`${item.id}_notes`] || "",
+          status: data[`${item.id}_status`] || 'not ok',
+          notes: data[`${item.id}_notes`] || '',
         });
       });
     });
@@ -260,18 +270,18 @@ export async function saveInspectionReport(
 
     await reportRef.set(firestoreData);
     revalidatePath('/dashboard');
-    revalidatePath("/reports");
+    revalidatePath('/reports');
 
     return {
       success: true,
-      message: "Inspection report saved successfully!",
+      message: 'Inspection report saved successfully!',
     };
   } catch (error) {
-    console.error("Error saving inspection report: ", error);
+    console.error('Error saving inspection report: ', error);
     const errorMessage =
       error instanceof Error
         ? error.message
-        : "An unknown error occurred while saving the report.";
+        : 'An unknown error occurred while saving the report.';
     return { success: false, message: errorMessage };
   }
 }
@@ -283,11 +293,11 @@ export async function getAllReportsForExport(): Promise<{
 }> {
   const { orgId } = await auth(); // Get orgId securely
   if (!orgId) {
-    return { success: false, error: "No organization found." };
+    return { success: false, error: 'No organization found.' };
   }
   try {
     const reportsRef = adminDb.collection(`organizations/${orgId}/inspections`);
-    const q = reportsRef.orderBy("submittedAt", "desc");
+    const q = reportsRef.orderBy('submittedAt', 'desc');
     const snapshot = await q.get();
 
     if (snapshot.empty) {
@@ -309,9 +319,9 @@ export async function getAllReportsForExport(): Promise<{
     return { success: true, data: reports };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "An unknown error occurred.";
+      error instanceof Error ? error.message : 'An unknown error occurred.';
     console.error(`Error fetching all reports for org ${orgId}:`, message);
-    return { success: false, error: "Could not load reports for export." };
+    return { success: false, error: 'Could not load reports for export.' };
   }
 }
 
@@ -322,7 +332,7 @@ export async function getReportDetails(reportId: string): Promise<{
 }> {
   const { orgId } = await auth(); // Gets orgId securely
   if (!orgId) {
-    return { success: false, error: "User is not authenticated." };
+    return { success: false, error: 'User is not authenticated.' };
   }
 
   try {
@@ -333,7 +343,7 @@ export async function getReportDetails(reportId: string): Promise<{
     const docSnap = await reportRef.get();
 
     if (!docSnap.exists) {
-      return { success: false, error: "Report not found." };
+      return { success: false, error: 'Report not found.' };
     }
 
     const report = { id: docSnap.id, ...docSnap.data() } as InspectionReport;
@@ -354,23 +364,23 @@ export async function getChecklistAction(): Promise<{
   const { orgId } = await auth();
   const user = await currentUser();
 
-  const isSuperAdmin = user?.publicMetadata?.role === "super_admin";
+  const isSuperAdmin = user?.publicMetadata?.role === 'super_admin';
   if (!orgId) {
-    return { success: false, error: "No organization active." };
+    return { success: false, error: 'No organization active.' };
   }
   if (!orgId) {
-    return { success: false, error: "Organization ID is required." };
+    return { success: false, error: 'Organization ID is required.' };
   }
   try {
     const checklistData = await getChecklist(orgId, isSuperAdmin);
     return { success: true, data: checklistData };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "An unknown error occurred.";
+      error instanceof Error ? error.message : 'An unknown error occurred.';
     console.error(`Error fetching checklist for org ${orgId}:`, message);
     return {
       success: false,
-      error: "Could not load the inspection checklist.",
+      error: 'Could not load the inspection checklist.',
     };
   }
 }
@@ -463,16 +473,16 @@ export async function createOrganizationAndInvite(
   const { userId } = await auth();
 
   if (!userId || !user) {
-    return { success: false, message: "Unauthorized action." };
+    return { success: false, message: 'Unauthorized action.' };
   }
 
-  if (user?.publicMetadata?.role !== "super_admin") {
-    return { success: false, message: "Unauthorized action." };
+  if (user?.publicMetadata?.role !== 'super_admin') {
+    return { success: false, message: 'Unauthorized action.' };
   }
   if (!orgName || !userEmail) {
     return {
       success: false,
-      message: "Organization name and email are required.",
+      message: 'Organization name and email are required.',
     };
   }
 
@@ -481,12 +491,12 @@ export async function createOrganizationAndInvite(
     const orgId = slugify(orgName);
 
     if (!orgId) {
-      return { success: false, message: "Organization name is invalid." };
+      return { success: false, message: 'Organization name is invalid.' };
     }
 
     const orgQuery = await adminDb
-      .collection("organizations")
-      .where("slug", "==", orgId)
+      .collection('organizations')
+      .where('slug', '==', orgId)
       .limit(1)
       .get();
 
@@ -504,7 +514,7 @@ export async function createOrganizationAndInvite(
 
     const emailAddress = userEmail.toLowerCase();
     const organizationId = newClerkOrg.id;
-    const role = "org:admin";
+    const role = 'org:admin';
     const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/accept-invite`;
     const inviterUserId = userId;
 
@@ -512,12 +522,12 @@ export async function createOrganizationAndInvite(
       await client.organizations.createOrganizationMembership({
         organizationId: organizationId,
         userId: inviterUserId,
-        role: "org:admin",
+        role: 'org:admin',
       });
     } catch (error) {
-      console.error("Failed to add superadmin to organization:", error);
+      console.error('Failed to add superadmin to organization:', error);
       throw new Error(
-        "Could not initialize organization membership for admin.",
+        'Could not initialize organization membership for admin.',
       );
     }
 
@@ -529,32 +539,32 @@ export async function createOrganizationAndInvite(
       redirectUrl,
     });
 
-    const orgRef = adminDb.collection("organizations").doc(newClerkOrg.id).set({
+    const orgRef = adminDb.collection('organizations').doc(newClerkOrg.id).set({
       clerkOrgId: newClerkOrg.id,
       name: newClerkOrg.name,
       slug: newClerkOrg.slug,
-      plan: "free",
+      plan: 'free',
       createdBy: userId,
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    revalidatePath("/super-admin/");
-    return { success: true, message: "Organization created successfully." };
+    revalidatePath('/super-admin/');
+    return { success: true, message: 'Organization created successfully.' };
   } catch (error) {
-    console.error("Error creating invitation:", error);
-    if (error && typeof error === "object" && "errors" in error) {
+    console.error('Error creating invitation:', error);
+    if (error && typeof error === 'object' && 'errors' in error) {
       const errWithErrors = error as { errors?: unknown };
       console.error(
-        "Clerk API specific errors:",
+        'Clerk API specific errors:',
         JSON.stringify(errWithErrors.errors, null, 2),
       );
     }
-    return { success: false, message: "An unexpected error occurred." };
+    return { success: false, message: 'An unexpected error occurred.' };
   }
 }
 
 export async function getOrgUsers(orgId: string): Promise<MemberData[]> {
-  if (orgId === "SUPER_ORG") {
+  if (orgId === 'SUPER_ORG') {
     return []; // Super admin org has no other members.
   }
   const membersRef = adminDb.collection(`organizations/${orgId}/members`);
@@ -573,7 +583,7 @@ export async function getOrgUsers(orgId: string): Promise<MemberData[]> {
   return snapshot.docs.map((doc) => {
     const data = doc.data();
 
-    if (data.createdAt && typeof data.createdAt.toMillis === "function") {
+    if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
       data.createdAt = {
         seconds: data.createdAt.seconds,
         nanoseconds: data.createdAt.nanoseconds,
@@ -590,13 +600,12 @@ export async function getOrgUsers(orgId: string): Promise<MemberData[]> {
 export async function getAllOrganizations(): Promise<Organization[]> {
   const user = await currentUser();
   const { userId } = await auth();
-  
 
-  if (!userId || user?.publicMetadata?.role !== "super_admin") {
-    throw new Error("You are not authorized to perform this action.");
+  if (!userId || user?.publicMetadata?.role !== 'super_admin') {
+    throw new Error('You are not authorized to perform this action.');
   }
-  const orgsRef = adminDb.collection("organizations");
-  const q = orgsRef.orderBy("createdAt", "desc");
+  const orgsRef = adminDb.collection('organizations');
+  const q = orgsRef.orderBy('createdAt', 'desc');
   const snapshot = await q.get();
 
   if (snapshot.empty) {
@@ -611,7 +620,7 @@ export async function getAllOrganizations(): Promise<Organization[]> {
         ? data.createdAt.toDate().toISOString()
         : new Date().toISOString();
 
-    const [driversSnap,membersSnap, vehiclesSnap] = await Promise.all([
+    const [driversSnap, membersSnap, vehiclesSnap] = await Promise.all([
       adminDb.collection(`organizations/${orgId}/drivers`).count().get(),
       adminDb.collection(`organizations/${orgId}/members`).count().get(),
       adminDb.collection(`organizations/${orgId}/vehicles`).count().get(),
@@ -641,7 +650,7 @@ export async function inviteUserToOrg(orgId: string, email: string) {
   const { userId, orgRole, orgSlug } = await auth();
 
   if (!userId) {
-    return { success: false, error: "Not authenticated" };
+    return { success: false, error: 'Not authenticated' };
   }
 
   const client = await clerkClient();
@@ -651,8 +660,8 @@ export async function inviteUserToOrg(orgId: string, email: string) {
       organizationId: orgId,
     });
 
-    if (orgRole !== "org:admin") {
-      return { success: false, error: "Unauthorized" };
+    if (orgRole !== 'org:admin') {
+      return { success: false, error: 'Unauthorized' };
     }
     const redirectUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/accept-invite`;
 
@@ -661,7 +670,7 @@ export async function inviteUserToOrg(orgId: string, email: string) {
       organizationId: orgId,
       inviterUserId: userId,
       emailAddress: email,
-      role: "org:member",
+      role: 'org:member',
       redirectUrl: redirectUrl,
     });
 
@@ -672,19 +681,19 @@ export async function inviteUserToOrg(orgId: string, email: string) {
       name: organization.name,
       slug: orgSlug,
       email: email,
-      role: "org:member",
+      role: 'org:member',
       createdBy: userId,
       createdAt: FieldValue.serverTimestamp(),
     });
 
     return { success: true };
   } catch (error: any) {
-    console.error("Failed to invite user:", error);
+    console.error('Failed to invite user:', error);
     // Return a friendly error message
     const errorMessage =
       error.errors?.[0]?.message ||
       error.message ||
-      "Failed to send invitation";
+      'Failed to send invitation';
     return { success: false, error: errorMessage };
   }
 }
@@ -695,7 +704,7 @@ export async function inviteUserToOrg(orgId: string, email: string) {
 
 async function getCollectionData<T>(
   orgId: string,
-  collectionName: "drivers" | "vehicles",
+  collectionName: 'drivers' | 'vehicles',
   orderByField: keyof T & string,
 ): Promise<T[]> {
   if (!orgId) return [];
@@ -703,7 +712,7 @@ async function getCollectionData<T>(
   const collectionRef = adminDb.collection(
     `organizations/${orgId}/${collectionName}`,
   );
-  const q = collectionRef.orderBy(orderByField, "asc");
+  const q = collectionRef.orderBy(orderByField, 'asc');
   const snapshot = await q.get();
 
   if (snapshot.empty) return [];
@@ -734,7 +743,9 @@ async function getCollectionData<T>(
 //   return getCollectionData<Vehicle>(orgId, "vehicles", "registration");
 // }
 
-function serializeTimestamp(timestamp: Timestamp | any): { seconds: number; nanoseconds: number } | null {
+function serializeTimestamp(
+  timestamp: Timestamp | any,
+): { seconds: number; nanoseconds: number } | null {
   if (!timestamp || typeof timestamp.toMillis !== 'function') return null;
   return {
     seconds: timestamp.seconds,
@@ -742,21 +753,27 @@ function serializeTimestamp(timestamp: Timestamp | any): { seconds: number; nano
   };
 }
 
-
-export async function getDrivers(limitSize: number = 10, lastCreatedAt?: { seconds: number, nanoseconds: number }): Promise<Driver[]> {
+export async function getDrivers(
+  limitSize: number = 10,
+  lastCreatedAt?: { seconds: number; nanoseconds: number },
+): Promise<Driver[]> {
   const { orgId } = await auth();
   if (!orgId) return [];
 
   // const snapshot = await adminDb.collection(`organizations/${orgId}/drivers`).get();
-  let q = adminDb.collection(`organizations/${orgId}/drivers`)
+  let q = adminDb
+    .collection(`organizations/${orgId}/drivers`)
     .orderBy('createdAt', 'desc')
     .limit(limitSize);
   if (lastCreatedAt) {
-    const cursor = new Timestamp(lastCreatedAt.seconds, lastCreatedAt.nanoseconds);
+    const cursor = new Timestamp(
+      lastCreatedAt.seconds,
+      lastCreatedAt.nanoseconds,
+    );
     q = q.startAfter(cursor);
   }
   const snapshot = await q.get();
-  return snapshot.docs.map(doc => {
+  return snapshot.docs.map((doc) => {
     const data = doc.data();
 
     if (data.createdAt) data.createdAt = serializeTimestamp(data.createdAt);
@@ -764,55 +781,62 @@ export async function getDrivers(limitSize: number = 10, lastCreatedAt?: { secon
     // Serialize nested timestamps if any exist in the future
     return { id: doc.id, ...data } as Driver;
   });
-
 }
 
 export async function saveDriverAction(driver: Partial<Driver>) {
   const { orgId } = await auth();
-  if (!orgId) return { success: false, error: "Not authenticated" };
+  if (!orgId) return { success: false, error: 'Not authenticated' };
 
   try {
-
     const driversRef = adminDb.collection(`organizations/${orgId}/drivers`);
 
     if (driver.email) {
-      const emailQuery = await driversRef.where("email", "==", driver.email)
+      const emailQuery = await driversRef
+        .where('email', '==', driver.email)
         .limit(1)
         .get();
 
       if (!emailQuery.empty) {
-        const isDuplicate = emailQuery.docs.some(doc => doc.id !== driver.id);
+        const isDuplicate = emailQuery.docs.some((doc) => doc.id !== driver.id);
         if (isDuplicate) {
-          return { success: false, error: "A driver with this email already exists." };
+          return {
+            success: false,
+            error: 'A driver with this email already exists.',
+          };
         }
-
       }
     }
 
     if (driver.phone) {
-      const phoneQuery = await driversRef.where("phone", "==", driver.phone)
+      const phoneQuery = await driversRef
+        .where('phone', '==', driver.phone)
         .limit(1)
         .get();
 
       if (!phoneQuery.empty) {
-        const isDuplicate = phoneQuery.docs.some(doc => doc.id !== driver.id);
+        const isDuplicate = phoneQuery.docs.some((doc) => doc.id !== driver.id);
         if (isDuplicate) {
-          return { success: false, error: "A driver with this phone number already exists." };
+          return {
+            success: false,
+            error: 'A driver with this phone number already exists.',
+          };
         }
-
       }
     }
     if (driver.employeeId) {
-      const empIdQuery = await driversRef.where("employeeId", "==", driver.employeeId)
+      const empIdQuery = await driversRef
+        .where('employeeId', '==', driver.employeeId)
         .limit(1)
         .get();
 
       if (!empIdQuery.empty) {
-        const isDuplicate = empIdQuery.docs.some(doc => doc.id !== driver.id);
+        const isDuplicate = empIdQuery.docs.some((doc) => doc.id !== driver.id);
         if (isDuplicate) {
-          return { success: false, error: "A driver with this employee ID already exists." };
+          return {
+            success: false,
+            error: 'A driver with this employee ID already exists.',
+          };
         }
-
       }
     }
 
@@ -824,9 +848,13 @@ export async function saveDriverAction(driver: Partial<Driver>) {
 
     if (!driver.id) {
       driverData.createdAt = FieldValue.serverTimestamp();
-      await adminDb.collection(`organizations/${orgId}/drivers`).add(driverData);
+      await adminDb
+        .collection(`organizations/${orgId}/drivers`)
+        .add(driverData);
     } else {
-      await adminDb.doc(`organizations/${orgId}/drivers/${driver.id}`).set(driverData, { merge: true });
+      await adminDb
+        .doc(`organizations/${orgId}/drivers/${driver.id}`)
+        .set(driverData, { merge: true });
     }
 
     revalidatePath('/fleet');
@@ -838,7 +866,7 @@ export async function saveDriverAction(driver: Partial<Driver>) {
 
 export async function deleteDriverAction(driverId: string) {
   const { orgId } = await auth();
-  if (!orgId) return { success: false, error: "Not authenticated" };
+  if (!orgId) return { success: false, error: 'Not authenticated' };
 
   try {
     await adminDb.doc(`organizations/${orgId}/drivers/${driverId}`).delete();
@@ -849,19 +877,26 @@ export async function deleteDriverAction(driverId: string) {
   }
 }
 
-export async function getVehicles(limitSize: number = 10, lastCreatedAt?: { seconds: number, nanoseconds: number }): Promise<Vehicle[]> {
+export async function getVehicles(
+  limitSize: number = 10,
+  lastCreatedAt?: { seconds: number; nanoseconds: number },
+): Promise<Vehicle[]> {
   const { orgId } = await auth();
   if (!orgId) return [];
 
-  let q = adminDb.collection(`organizations/${orgId}/vehicles`)
+  let q = adminDb
+    .collection(`organizations/${orgId}/vehicles`)
     .orderBy('createdAt', 'desc')
     .limit(limitSize);
   if (lastCreatedAt) {
-    const cursor = new Timestamp(lastCreatedAt.seconds, lastCreatedAt.nanoseconds);
+    const cursor = new Timestamp(
+      lastCreatedAt.seconds,
+      lastCreatedAt.nanoseconds,
+    );
     q = q.startAfter(cursor);
   }
   const snapshot = await q.get();
-  return snapshot.docs.map(doc => {
+  return snapshot.docs.map((doc) => {
     const data = doc.data();
     if (data.createdAt) data.createdAt = serializeTimestamp(data.createdAt);
     if (data.updatedAt) data.updatedAt = serializeTimestamp(data.updatedAt);
@@ -872,27 +907,28 @@ export async function getVehicles(limitSize: number = 10, lastCreatedAt?: { seco
 
 export async function saveVehicleAction(vehicle: Partial<Vehicle>) {
   const { orgId } = await auth();
-  if (!orgId) return { success: false, error: "Not authenticated" };
+  if (!orgId) return { success: false, error: 'Not authenticated' };
 
   try {
-
     const vehiclesRef = adminDb.collection(`organizations/${orgId}/vehicles`);
 
     if (vehicle.registration) {
-      const regQuery = await vehiclesRef.where("registration", "==", vehicle.registration)
+      const regQuery = await vehiclesRef
+        .where('registration', '==', vehicle.registration)
         .limit(1)
         .get();
 
       if (!regQuery.empty) {
-        const isDuplicate = regQuery.docs.some(doc => doc.id !== vehicle.id);
+        const isDuplicate = regQuery.docs.some((doc) => doc.id !== vehicle.id);
         if (isDuplicate) {
-          return { success: false, error: "A vehicle with this registration already exists." };
+          return {
+            success: false,
+            error: 'A vehicle with this registration already exists.',
+          };
         }
-
       }
     }
 
-      
     const vehicleData = {
       ...vehicle,
       orgId,
@@ -901,9 +937,13 @@ export async function saveVehicleAction(vehicle: Partial<Vehicle>) {
 
     if (!vehicle.id) {
       vehicleData.createdAt = FieldValue.serverTimestamp();
-      await adminDb.collection(`organizations/${orgId}/vehicles`).add(vehicleData);
+      await adminDb
+        .collection(`organizations/${orgId}/vehicles`)
+        .add(vehicleData);
     } else {
-      await adminDb.doc(`organizations/${orgId}/vehicles/${vehicle.id}`).set(vehicleData, { merge: true });
+      await adminDb
+        .doc(`organizations/${orgId}/vehicles/${vehicle.id}`)
+        .set(vehicleData, { merge: true });
     }
 
     revalidatePath('/fleet');
@@ -915,7 +955,7 @@ export async function saveVehicleAction(vehicle: Partial<Vehicle>) {
 
 export async function deleteVehicleAction(vehicleId: string) {
   const { orgId } = await auth();
-  if (!orgId) return { success: false, error: "Not authenticated" };
+  if (!orgId) return { success: false, error: 'Not authenticated' };
 
   try {
     await adminDb.doc(`organizations/${orgId}/vehicles/${vehicleId}`).delete();
@@ -925,7 +965,6 @@ export async function deleteVehicleAction(vehicleId: string) {
     return { success: false, error: error.message };
   }
 }
-
 
 // async function addFleetItem(
 //   collectionName: "drivers" | "vehicles",
@@ -974,14 +1013,14 @@ export async function deleteVehicleAction(vehicleId: string) {
 // }
 
 async function deleteFleetItem(
-  collectionName: "drivers" | "vehicles",
+  collectionName: 'drivers' | 'vehicles',
   itemId: string,
 ): Promise<{ success: boolean; message: string }> {
   const { orgId } = await auth();
   if (!orgId || !itemId) {
     return {
       success: false,
-      message: "Organization and item ID are required.",
+      message: 'Organization and item ID are required.',
     };
   }
   try {
@@ -995,7 +1034,7 @@ async function deleteFleetItem(
     };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "An unknown error occurred.";
+      error instanceof Error ? error.message : 'An unknown error occurred.';
     console.error(`Error deleting ${collectionName}:`, message);
     return {
       success: false,
@@ -1010,10 +1049,10 @@ export async function deleteDriver(
   if (!driverId) {
     return {
       success: false,
-      message: "Organization and driver ID are required.",
+      message: 'Organization and driver ID are required.',
     };
   }
-  return deleteFleetItem("drivers", driverId);
+  return deleteFleetItem('drivers', driverId);
 }
 
 export async function deleteVehicle(
@@ -1022,13 +1061,16 @@ export async function deleteVehicle(
   if (!vehicleId) {
     return {
       success: false,
-      message: "Organization and vehicle ID are required.",
+      message: 'Organization and vehicle ID are required.',
     };
   }
-  return deleteFleetItem("vehicles", vehicleId);
+  return deleteFleetItem('vehicles', vehicleId);
 }
 
-export async function searchFleetAction(searchTerm: string, searchType: 'vehicles' | 'drivers' = 'vehicles'): Promise<any[]> {
+export async function searchFleetAction(
+  searchTerm: string,
+  searchType: 'vehicles' | 'drivers' = 'vehicles',
+): Promise<any[]> {
   const { orgId } = await auth();
   if (!orgId || !searchTerm) return [];
 
@@ -1036,31 +1078,46 @@ export async function searchFleetAction(searchTerm: string, searchType: 'vehicle
     const collectionName = searchType === 'vehicles' ? 'vehicles' : 'drivers';
     const searchField = searchType === 'vehicles' ? 'registration' : 'name';
 
-    const queryText = searchTerm.toLowerCase(); 
+    const queryText = searchTerm.toLowerCase();
 
-    const snapshot = await adminDb.collection(`organizations/${orgId}/${collectionName}`).get();
+    const snapshot = await adminDb
+      .collection(`organizations/${orgId}/${collectionName}`)
+      .get();
 
-    const allItems = snapshot.docs.map(doc => {
+    const allItems = snapshot.docs.map((doc) => {
       const data = doc.data();
-      
+
       if (data.createdAt && typeof data.createdAt.toMillis === 'function') {
-        data.createdAt = { seconds: data.createdAt.seconds, nanoseconds: data.createdAt.nanoseconds };
+        data.createdAt = {
+          seconds: data.createdAt.seconds,
+          nanoseconds: data.createdAt.nanoseconds,
+        };
       }
       if (data.updatedAt && typeof data.updatedAt.toMillis === 'function') {
-        data.updatedAt = { seconds: data.updatedAt.seconds, nanoseconds: data.updatedAt.nanoseconds };
+        data.updatedAt = {
+          seconds: data.updatedAt.seconds,
+          nanoseconds: data.updatedAt.nanoseconds,
+        };
       }
-      if (data.maintenance?.lastServiceDate && typeof data.maintenance.lastServiceDate.toMillis === 'function') {
-        data.maintenance.lastServiceDate = { seconds: data.maintenance.lastServiceDate.seconds, nanoseconds: data.maintenance.lastServiceDate.nanoseconds };
+      if (
+        data.maintenance?.lastServiceDate &&
+        typeof data.maintenance.lastServiceDate.toMillis === 'function'
+      ) {
+        data.maintenance.lastServiceDate = {
+          seconds: data.maintenance.lastServiceDate.seconds,
+          nanoseconds: data.maintenance.lastServiceDate.nanoseconds,
+        };
       }
 
       return { id: doc.id, ...data };
     });
 
-    const filteredItems = allItems.filter(item => {
-      const fieldValue = String((item as Record<string, any>)[searchField] || '').toLowerCase();
+    const filteredItems = allItems.filter((item) => {
+      const fieldValue = String(
+        (item as Record<string, any>)[searchField] || '',
+      ).toLowerCase();
       return fieldValue.includes(queryText);
     });
-
 
     return filteredItems.slice(0, 10);
   } catch (error) {
@@ -1074,28 +1131,32 @@ export async function searchFleetAction(searchTerm: string, searchType: 'vehicle
 export async function initializePaystackTransactionAction(email: string) {
   const { orgId } = await auth();
 
-  if (!orgId) return { success: false, error: "No organization found" };
+  if (!orgId) return { success: false, error: 'No organization found' };
 
   const amountInKobo = 50 * 100; // NGN 50 charge for verification
   const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`;
 
   try {
-    const response = await fetch('https://api.paystack.co/transaction/initialize', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        'Content-Type': 'application/json',
+    const response = await fetch(
+      'https://api.paystack.co/transaction/initialize',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          plan: 'monthly',
+          email,
+          amount: amountInKobo,
+          callback_url: callbackUrl,
+          metadata: {
+            orgId, // Pass orgId so we verify it later
+            type: 'card_verification',
+          },
+        }),
       },
-      body: JSON.stringify({
-        email,
-        amount: amountInKobo,
-        callback_url: callbackUrl,
-        metadata: {
-          orgId, // Pass orgId so we verify it later
-          type: 'card_verification'
-        }
-      }),
-    });
+    );
 
     const data = await response.json();
 
@@ -1103,10 +1164,14 @@ export async function initializePaystackTransactionAction(email: string) {
       return { success: false, error: data.message };
     }
 
-    return { success: true, url: data.data.authorization_url, reference: data.data.reference };
+    return {
+      success: true,
+      url: data.data.authorization_url,
+      reference: data.data.reference,
+    };
   } catch (error: any) {
-    console.error("Paystack Init Error:", error);
-    return { success: false, error: "Payment initialization failed" };
+    console.error('Paystack Init Error:', error);
+    return { success: false, error: 'Payment initialization failed' };
   }
 }
 
@@ -1119,9 +1184,12 @@ export async function verifyAndSubscribeAction(reference: string) {
 
   try {
     // A. Verify the Transaction
-    const verifyReq = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-      headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` }
-    });
+    const verifyReq = await fetch(
+      `https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` },
+      },
+    );
     const verifyData = await verifyReq.json();
 
     if (!verifyData.status || verifyData.data.status !== 'success') {
@@ -1158,14 +1226,17 @@ export async function verifyAndSubscribeAction(reference: string) {
     const subData = await subReq.json();
 
     if (!subData.status) {
-      return { success: false, error: 'Failed to create subscription: ' + subData.message };
+      return {
+        success: false,
+        error: 'Failed to create subscription: ' + subData.message,
+      };
     }
 
     // D. Update Firestore
     const orgRef = adminDb.doc(`organizations/${orgId}`);
 
     await orgRef.update({
-      plan: 'pro',
+      plan: 'monthly',
       subscriptionStatus: 'trialing',
       paystackSubCode: subData.data.subscription_code,
       paystackEmailToken: subData.data.email_token,
@@ -1174,47 +1245,56 @@ export async function verifyAndSubscribeAction(reference: string) {
     });
 
     return { success: true };
-
   } catch (error: any) {
-    console.error("Subscription Error:", error);
+    console.error('Subscription Error:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function getPlatformAveragesAction() {
   const user = await currentUser();
-  
-  
+
   if (!user || user.publicMetadata?.role !== 'super_admin') {
     return { success: false, error: 'Unauthorized' };
   }
 
   try {
-    
     const orgsSnapshot = await adminDb.collection('organizations').get();
     const totalOrgs = orgsSnapshot.size;
 
     if (totalOrgs === 0) {
-      return { success: true, data: { avgDrivers: 0, avgMembers: 0, totalOrgs: 0 } };
+      return {
+        success: true,
+        data: { avgDrivers: 0, avgMembers: 0, totalOrgs: 0 },
+      };
     }
 
     let totalDrivers = 0;
     let totalMembers = 0;
 
-    
-    await Promise.all(orgsSnapshot.docs.map(async (orgDoc) => {
-      const orgId = orgDoc.id;
+    await Promise.all(
+      orgsSnapshot.docs.map(async (orgDoc) => {
+        const orgId = orgDoc.id;
 
-      
-      const driversPromise = adminDb.collection(`organizations/${orgId}/drivers`).count().get();
-      
-      const membersPromise = adminDb.collection(`organizations/${orgId}/members`).count().get();
+        const driversPromise = adminDb
+          .collection(`organizations/${orgId}/drivers`)
+          .count()
+          .get();
 
-      const [driversSnap, membersSnap] = await Promise.all([driversPromise, membersPromise]);
+        const membersPromise = adminDb
+          .collection(`organizations/${orgId}/members`)
+          .count()
+          .get();
 
-      totalDrivers += driversSnap.data().count;
-      totalMembers += membersSnap.data().count;
-    }));
+        const [driversSnap, membersSnap] = await Promise.all([
+          driversPromise,
+          membersPromise,
+        ]);
+
+        totalDrivers += driversSnap.data().count;
+        totalMembers += membersSnap.data().count;
+      }),
+    );
 
     return {
       success: true,
@@ -1223,11 +1303,11 @@ export async function getPlatformAveragesAction() {
         avgMembers: parseFloat((totalMembers / totalOrgs).toFixed(0)),
         totalOrgs,
         totalDrivers,
-        totalMembers
-      }
+        totalMembers,
+      },
     };
   } catch (error: any) {
-    console.error("Error calculating averages:", error);
+    console.error('Error calculating averages:', error);
     return { success: false, error: error.message };
   }
 }

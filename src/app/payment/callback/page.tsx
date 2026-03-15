@@ -12,7 +12,9 @@ function PaymentCallbackContent() {
   const router = useRouter();
   const reference = searchParams.get('reference');
 
-  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
+  const [status, setStatus] = useState<'processing' | 'success' | 'error'>(
+    'processing',
+  );
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -44,59 +46,55 @@ function PaymentCallbackContent() {
   }, [reference, router]);
 
   return (
-    
-    <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center" >
-
+    <div className='w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center'>
       {status === 'processing' && (
-        <div className="flex flex-col items-center" >
-          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <h2 className="text-xl font-semibold" > Verifying Payment...</h2>
-              <p className = "text-muted-foreground mt-2" > Setting up your 14 - day trial.</p>
-                </div>
-        )
-}
-
-{
-  status === 'success' && (
-    <div className="flex flex-col items-center" >
-      <CheckCircle2 className="h-12 w-12 text-green-500 mb-4" />
-        <h2 className="text-xl font-semibold" > Subscription Active! </h2>
-          < p className = "text-muted-foreground mt-2" >
-            Your 14 - day free trial has started.Redirecting you to the dashboard...
-  </p>
-    < Button asChild className = "mt-6" >
-      <Link href="/" > Go to Dashboard </Link>
-        </Button>
+        <div className='flex flex-col items-center'>
+          <Loader2 className='h-12 w-12 animate-spin text-primary mb-4' />
+          <h2 className='text-xl font-semibold'> Verifying Payment...</h2>
+          <p className='text-muted-foreground mt-2'>
+            {' '}
+            Setting up your 30 - day trial.
+          </p>
         </div>
-        )
-}
+      )}
 
-{
-  status === 'error' && (
-    <div className="flex flex-col items-center" >
-      <XCircle className="h-12 w-12 text-destructive mb-4" />
-        <h2 className="text-xl font-semibold" > Something went wrong </h2>
-          < p className = "text-red-500 mt-2" > { message } </p>
-            < Button asChild variant = "outline" className = "mt-6" >
-              <Link href="/pricing" > Try Again </Link>
-                </Button>
-                </div>
-        )
-}
+      {status === 'success' && (
+        <div className='flex flex-col items-center'>
+          <CheckCircle2 className='h-12 w-12 text-green-500 mb-4' />
+          <h2 className='text-xl font-semibold'> Subscription Active! </h2>
+          <p className='text-muted-foreground mt-2'>
+            Your 30 - day free trial has started.Redirecting you to the
+            dashboard...
+          </p>
+          <Button asChild className='mt-6'>
+            <Link href='/'> Go to Dashboard </Link>
+          </Button>
+        </div>
+      )}
 
-</div>
+      {status === 'error' && (
+        <div className='flex flex-col items-center'>
+          <XCircle className='h-12 w-12 text-destructive mb-4' />
+          <h2 className='text-xl font-semibold'> Something went wrong </h2>
+          <p className='text-red-500 mt-2'> {message} </p>
+          <Button asChild variant='outline' className='mt-6'>
+            <Link href='/pricing'> Try Again </Link>
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
 export default function PaymentCallbackPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
-      <Suspense 
+    <div className='flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4'>
+      <Suspense
         fallback={
-          <div className="w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center">
-             <div className="flex flex-col items-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-              <h2 className="text-xl font-semibold">Loading...</h2>
+          <div className='w-full max-w-md bg-white p-8 rounded-lg shadow-md text-center'>
+            <div className='flex flex-col items-center'>
+              <Loader2 className='h-12 w-12 animate-spin text-primary mb-4' />
+              <h2 className='text-xl font-semibold'>Loading...</h2>
             </div>
           </div>
         }
