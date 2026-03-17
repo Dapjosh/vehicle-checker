@@ -1146,13 +1146,14 @@ export async function initializePaystackTransactionAction(email: string) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          plan: 'monthly',
           email,
           amount: amountInKobo,
+          channels: ['card'],
           callback_url: callbackUrl,
           metadata: {
             orgId, // Pass orgId so we verify it later
             type: 'card_verification',
+            isTrialSetup: true,
           },
         }),
       },
@@ -1219,7 +1220,7 @@ export async function verifyAndSubscribeAction(reference: string) {
         customer: customerEmail,
         plan: process.env.PAYSTACK_PLAN_CODE,
         authorization: authCode, // The tokenized card
-        start_date: startDate.toISOString(), // Delay charge by 14 days
+        start_date: startDate.toISOString(), // Delay charge by 30 days
       }),
     });
 
@@ -1236,15 +1237,17 @@ export async function verifyAndSubscribeAction(reference: string) {
     const orgRef = adminDb.doc(`organizations/${orgId}`);
 
     await orgRef.update({
-      plan: 'monthly',
-      subscriptionStatus: 'trialing',
+      plan: 'trial', // [trial, monthly, annual]
+      subscriptionStatus: 'trialing', // [trialing, active, inactive, past_due]
+      paymentStatus: 'paid', // [unpaid, paid]
       paystackSubCode: subData.data.subscription_code,
       paystackEmailToken: subData.data.email_token,
       trialEndsAt: startDate, // Save the actual date object/timestamp
-      updatedAt: FieldValue.serverTimestamp(),
+      lastPaidAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     });
 
-    return { success: true };
+    return { success: true, message: 'Subscription started successfully!' };
   } catch (error: any) {
     console.error('Subscription Error:', error);
     return { success: false, error: error.message };

@@ -1,6 +1,7 @@
 import { clerkClient } from '@clerk/nextjs/server';
 import { adminDb } from '@/lib/firebase-admin';
 import crypto from 'crypto';
+import { sendPaymentFailureEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
       await adminDb.doc(`organizations/${orgId}`).set(
         {
           plan: 'monthly',
-          paymentStatus: 'active',
+          subscriptionStatus: 'active',
           lastPaidAt: new Date().toISOString(),
         },
         { merge: true },
@@ -54,6 +55,42 @@ export async function POST(req: Request) {
       });
 
       console.log(`Successfully unlocked platform access for org: ${orgId}`);
+    }
+
+    if (event === 'invoice.payment_failed' || event === 'charge.failed') {
+      const orgId = data.metadata?.orgId;
+
+      const customerEmail = data.customer.email;
+
+      if (!orgId) {
+        console.error(
+          'Webhook received, but no orgId found in transaction metadata.',
+        );
+        return new Response('Missing orgId in metadata', { status: 400 });
+      } else {
+        await adminDb.doc(`organizations/${orgId}`).update({
+          plan: 'free',
+          subscriptionStatus: 'past_due',
+          paymentStatus: 'failed',
+          updatedAt: new Date().toISOString(),
+        });
+
+        const client = await clerkClient();
+        await client.organizations.updateOrganizationMetadata(orgId, {
+          publicMetadata: {
+            plan: 'free',
+            subscriptionStatus: 'past_due',
+          },
+        });
+
+        // send an email notifying them ${customerEmail} of the payment failure
+        const orgName = await adminDb
+          .doc(`organizations/${orgId}`)
+          .get()
+          .then((doc) => doc.data()?.name);
+
+        await sendPaymentFailureEmail(customerEmail, orgName);
+      }
     }
 
     return new Response('Webhook handled successfully', { status: 200 });

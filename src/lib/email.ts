@@ -1,21 +1,28 @@
-"use server";
+'use server';
 
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function sendOrganizationInviteEmail(to: string, orgName: string, signupLink: string): Promise<{ success: boolean; error?: string }> {
-    if (!process.env.RESEND_API_KEY) {
-        console.error("RESEND_API_KEY is not set. Cannot send email.");
-        return { success: false, error: "Email service is not configured. RESEND_API_KEY is missing." };
-    }
+export async function sendOrganizationInviteEmail(
+  to: string,
+  orgName: string,
+  signupLink: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set. Cannot send email.');
+    return {
+      success: false,
+      error: 'Email service is not configured. RESEND_API_KEY is missing.',
+    };
+  }
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: 'Fleetcheckr <onboarding@fleetcheckr.com>', // Use Resend's sandbox domain for testing
-            to: [to],
-            subject: `You're invited to join ${orgName} on Fleetcheckr`,
-            html: `
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Fleetcheckr <onboarding@fleetcheckr.com>', // Use Resend's sandbox domain for testing
+      to: [to],
+      subject: `You're invited to join ${orgName} on Fleetcheckr`,
+      html: `
                 <h1>You're Invited!</h1>
                 <p>You have been invited to join the organization <strong>${orgName}</strong> on Fleetcheckr.</p>
                 <p>Click the link below to create your account and get started:</p>
@@ -24,34 +31,43 @@ export async function sendOrganizationInviteEmail(to: string, orgName: string, s
                 </a>
                 <p>If you did not expect this invitation, you can safely ignore this email.</p>
             `,
-        });
+    });
 
-        if (error) {
-            console.error("Resend API error:", error);
-            return { success: false, error: error.message };
-        }
-
-        return { success: true };
-
-    } catch (error) {
-        console.error("Failed to send email:", error);
-        const message = error instanceof Error ? error.message : 'An unknown error occurred';
-        return { success: false, error: message };
+    if (error) {
+      console.error('Resend API error:', error);
+      return { success: false, error: error.message };
     }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    const message =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    return { success: false, error: message };
+  }
 }
 
-export async function sendLeadEmail(emailData: { name: string; email: string; companyName: string; fleetSize: string; message: string }): Promise<{ success: boolean; error?: string }> {
-    if (!process.env.RESEND_API_KEY) {
-        console.error("RESEND_API_KEY is not set. Cannot send email.");
-        return { success: false, error: "Email service is not configured. RESEND_API_KEY is missing." };
-    }
+export async function sendLeadEmail(emailData: {
+  name: string;
+  email: string;
+  companyName: string;
+  fleetSize: string;
+  message: string;
+}): Promise<{ success: boolean; error?: string }> {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set. Cannot send email.');
+    return {
+      success: false,
+      error: 'Email service is not configured. RESEND_API_KEY is missing.',
+    };
+  }
 
-    try {
-        const { data, error } = await resend.emails.send({
-            from: 'Fleetcheckr <onboarding@fleetcheckr.com>', // Use Resend's sandbox domain for testing
-            to: ['onboarding@fleetcheckr.com'],
-            subject: 'New Lead Received',
-            html: `
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'Fleetcheckr <onboarding@fleetcheckr.com>', // Use Resend's sandbox domain for testing
+      to: ['onboarding@fleetcheckr.com'],
+      subject: 'New Lead Received',
+      html: `
                 <h1>New Lead Received</h1>
                 <p>Name: ${emailData['name']}</p>
                 <p>Email: ${emailData['email']}</p>
@@ -59,18 +75,55 @@ export async function sendLeadEmail(emailData: { name: string; email: string; co
                 <p>Fleet Size: ${emailData['fleetSize']}</p>
                 <p>Message: ${emailData['message']}</p>
             `,
-        });
+    });
 
-        if (error) {
-            console.error("Resend API error:", error);
-            return { success: false, error: error.message };
-        }
-
-        return { success: true };
-
-    } catch (error) {
-        console.error("Failed to send email:", error);
-        const message = error instanceof Error ? error.message : 'An unknown error occurred';
-        return { success: false, error: message };
+    if (error) {
+      console.error('Resend API error:', error);
+      return { success: false, error: error.message };
     }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    const message =
+      error instanceof Error ? error.message : 'An unknown error occurred';
+    return { success: false, error: message };
+  }
+}
+
+export async function sendPaymentFailureEmail(email: string, orgName: string) {
+  if (!process.env.RESEND_API_KEY) {
+    console.error('RESEND_API_KEY is not set. Cannot send email.');
+    return {
+      success: false,
+      error: 'Email service is not configured. RESEND_API_KEY is missing.',
+    };
+  }
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'FleetCheckr Billing <billing@yourdomain.com>',
+      to: email,
+      subject: 'Action Required: Subscription Payment Failed',
+      html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Payment Failed</h2>
+            <p>Hi there,</p>
+            <p>We were unable to process the latest subscription payment for your workspace: <strong>${orgName}</strong>.</p>
+            <p>As a result, access to the platform has been temporarily restricted.</p>
+            <p>Please log in and update your billing information on the pricing page to restore your access immediately.</p>
+            <br/>
+            <p>Thanks,<br/>The FleetCheckr Team</p>
+          </div>
+        `,
+    });
+
+    if (error) {
+      console.error('Resend API error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending payment failure email:', error);
+  }
 }

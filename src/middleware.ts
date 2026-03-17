@@ -35,7 +35,10 @@ export default clerkMiddleware(async (auth, req) => {
 
     const activePlan = orgMetadata?.plan as string | undefined;
 
-    const isPaid = activePlan === 'monthly' || activePlan === 'annual';
+    const isPaid =
+      activePlan === 'monthly' ||
+      activePlan === 'annual' ||
+      activePlan === 'trial';
 
     if (orgId && !isPaid) {
       const pricingUrl = new URL('/pricing', req.url);
