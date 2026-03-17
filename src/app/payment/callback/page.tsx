@@ -31,7 +31,7 @@ function PaymentCallbackContent() {
         if (result.success) {
           setStatus('success');
           // Optional: Redirect automatically after 3 seconds
-          setTimeout(() => router.push('/'), 3000);
+          setTimeout(() => router.push('/dashboard'), 3000);
         } else {
           setStatus('error');
           setMessage(result.error || 'Verification failed');
