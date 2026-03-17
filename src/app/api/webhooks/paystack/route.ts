@@ -29,6 +29,8 @@ export async function POST(req: Request) {
 
     if (event === 'charge.success') {
       const orgId = data.metadata?.orgId;
+      const orgCurrentPlan = data.metadata?.orgCurrentPlan?.plan;
+      const isTrial = data.metadata?.isTrialSetup;
 
       if (!orgId) {
         console.error(
@@ -39,8 +41,8 @@ export async function POST(req: Request) {
 
       await adminDb.doc(`organizations/${orgId}`).set(
         {
-          plan: 'monthly',
-          subscriptionStatus: 'active',
+          plan: isTrial ? 'trial' : 'monthly',
+          subscriptionStatus: isTrial ? 'trialing' : 'active',
           lastPaidAt: new Date().toISOString(),
         },
         { merge: true },
@@ -49,7 +51,7 @@ export async function POST(req: Request) {
       const clerk = await clerkClient();
       await clerk.organizations.updateOrganizationMetadata(orgId, {
         publicMetadata: {
-          plan: 'monthly',
+          plan: isTrial ? 'trial' : 'monthly',
           paymentStatus: 'active',
         },
       });

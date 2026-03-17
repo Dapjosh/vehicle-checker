@@ -21,6 +21,7 @@ import { SUPER_ADMIN_UID, NEXT_PUBLIC_BASE_URL } from '@/lib/config';
 import { getChecklist } from '@/lib/firestore';
 import { redirect } from 'next/dist/server/api-utils';
 import { sendLeadEmail } from '@/lib/email';
+import { or } from 'firebase/firestore';
 
 // =================================================================================
 // Helper Functions
@@ -1129,12 +1130,16 @@ export async function searchFleetAction(
 // Payments
 
 export async function initializePaystackTransactionAction(email: string) {
-  const { orgId } = await auth();
+  const { orgId, sessionClaims } = await auth();
+
+  const orgMetadata = sessionClaims?.org_metadata as
+    | Record<string, any>
+    | undefined;
 
   if (!orgId) return { success: false, error: 'No organization found' };
 
   const amountInKobo = 50 * 100; // NGN 50 charge for verification
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/payment/callback`;
+  const callbackUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment/callback`;
 
   try {
     const response = await fetch(
@@ -1153,6 +1158,7 @@ export async function initializePaystackTransactionAction(email: string) {
           metadata: {
             orgId, // Pass orgId so we verify it later
             type: 'card_verification',
+            orgCurrentPlan: orgMetadata,
             isTrialSetup: true,
           },
         }),
@@ -1245,6 +1251,14 @@ export async function verifyAndSubscribeAction(reference: string) {
       trialEndsAt: startDate, // Save the actual date object/timestamp
       lastPaidAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+    });
+
+    const client = await clerkClient();
+
+    await client.organizations.updateOrganization(orgId, {
+      publicMetadata: {
+        plan: 'trial',
+      },
     });
 
     return { success: true, message: 'Subscription started successfully!' };
