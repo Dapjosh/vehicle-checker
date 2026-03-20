@@ -27,11 +27,11 @@ export async function POST(req: Request) {
     const event = payload.event;
     const data = payload.data;
 
-    if (event === 'charge.success') {
-      const orgId = data.metadata?.orgId;
-      const orgCurrentPlan = data.metadata?.orgCurrentPlan?.plan;
-      const isTrial = data.metadata?.isTrialSetup;
+    const orgId = data.metadata?.orgId;
+    const orgCurrentPlan = data.metadata?.orgCurrentPlan?.plan;
+    const isTrial = data.metadata?.isTrialSetup;
 
+    if (event === 'charge.success') {
       if (!orgId) {
         console.error(
           'Webhook received, but no orgId found in transaction metadata.',
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
       await adminDb.doc(`organizations/${orgId}`).set(
         {
-          plan: isTrial ? 'trial' : 'monthly',
+          plan: isTrial ? 'trial' : orgCurrentPlan,
           subscriptionStatus: isTrial ? 'trialing' : 'active',
           lastPaidAt: new Date().toISOString(),
         },
@@ -51,8 +51,9 @@ export async function POST(req: Request) {
       const clerk = await clerkClient();
       await clerk.organizations.updateOrganizationMetadata(orgId, {
         publicMetadata: {
-          plan: isTrial ? 'trial' : 'monthly',
+          plan: isTrial ? 'trial' : orgCurrentPlan,
           paymentStatus: 'active',
+          subscriptionStatus: isTrial ? 'trialing' : 'active',
         },
       });
 
@@ -60,8 +61,6 @@ export async function POST(req: Request) {
     }
 
     if (event === 'invoice.payment_failed' || event === 'charge.failed') {
-      const orgId = data.metadata?.orgId;
-
       const customerEmail = data.customer.email;
 
       if (!orgId) {
@@ -81,11 +80,11 @@ export async function POST(req: Request) {
         await client.organizations.updateOrganizationMetadata(orgId, {
           publicMetadata: {
             plan: 'free',
+            paymentStatus: 'failed',
             subscriptionStatus: 'past_due',
           },
         });
 
-        // send an email notifying them ${customerEmail} of the payment failure
         const orgName = await adminDb
           .doc(`organizations/${orgId}`)
           .get()

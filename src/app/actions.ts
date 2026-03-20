@@ -1129,16 +1129,22 @@ export async function searchFleetAction(
 
 // Payments
 
-export async function initializePaystackTransactionAction(email: string) {
+export async function initializePaystackTransactionAction(
+  billingCycle: 'monthly' | 'annual' = 'monthly',
+) {
   const { orgId, sessionClaims } = await auth();
+  const user = await currentUser();
 
   const orgMetadata = sessionClaims?.org_metadata as
     | Record<string, any>
     | undefined;
 
+  if (!user) return { success: false, error: 'No user found' };
   if (!orgId) return { success: false, error: 'No organization found' };
 
-  const amountInKobo = 50 * 100; // NGN 50 charge for verification
+  const email = user.emailAddresses?.[0]?.emailAddress as string;
+
+  const amountInKobo = 50 * 100;
   const callbackUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/payment/callback`;
 
   try {
@@ -1156,7 +1162,8 @@ export async function initializePaystackTransactionAction(email: string) {
           channels: ['card'],
           callback_url: callbackUrl,
           metadata: {
-            orgId, // Pass orgId so we verify it later
+            orgId,
+            plan: billingCycle,
             type: 'card_verification',
             orgCurrentPlan: orgMetadata,
             isTrialSetup: true,
@@ -1207,6 +1214,8 @@ export async function verifyAndSubscribeAction(reference: string) {
     const customerEmail = verifyData.data.customer.email;
     const orgId = verifyData.data.metadata.orgId;
 
+    const chosenPlan = verifyData.data.metadata.plan || 'monthly'; // future plan selected either monthly or annuals
+
     if (!authCode || !orgId) {
       return { success: false, error: 'Invalid transaction data' };
     }
@@ -1214,6 +1223,11 @@ export async function verifyAndSubscribeAction(reference: string) {
     // B. Calculate Start Date (30 Days from now)
     const startDate = new Date();
     startDate.setDate(startDate.getDate() + 30);
+
+    const paystackPlanCode =
+      chosenPlan === 'annual'
+        ? process.env.PAYSTACK_ANNUAL_PLAN_CODE
+        : process.env.PAYSTACK_MONTHLY_PLAN_CODE;
 
     // C. Create Subscription with Paystack
     const subReq = await fetch('https://api.paystack.co/subscription', {
@@ -1224,7 +1238,7 @@ export async function verifyAndSubscribeAction(reference: string) {
       },
       body: JSON.stringify({
         customer: customerEmail,
-        plan: process.env.PAYSTACK_PLAN_CODE,
+        plan: paystackPlanCode,
         authorization: authCode, // The tokenized card
         start_date: startDate.toISOString(), // Delay charge by 30 days
       }),
@@ -1244,6 +1258,7 @@ export async function verifyAndSubscribeAction(reference: string) {
 
     await orgRef.update({
       plan: 'trial', // [trial, monthly, annual]
+      futurePlan: chosenPlan,
       subscriptionStatus: 'trialing', // [trialing, active, inactive, past_due]
       paymentStatus: 'paid', // [unpaid, paid]
       paystackSubCode: subData.data.subscription_code,
@@ -1255,9 +1270,11 @@ export async function verifyAndSubscribeAction(reference: string) {
 
     const client = await clerkClient();
 
-    await client.organizations.updateOrganization(orgId, {
+    await client.organizations.updateOrganizationMetadata(orgId, {
       publicMetadata: {
         plan: 'trial',
+        futurePlan: chosenPlan,
+        subscriptionStatus: 'trialing',
       },
     });
 
