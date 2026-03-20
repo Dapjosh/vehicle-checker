@@ -1278,6 +1278,32 @@ export async function verifyAndSubscribeAction(reference: string) {
       },
     });
 
+    try {
+      const refundReq = await fetch('https://api.paystack.co/refund', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transaction: reference,
+        }),
+      });
+
+      const refundData = await refundReq.json();
+
+      if (!refundData.status) {
+        console.warn('Paystack Refund Warning:', refundData.message);
+      } else {
+        console.log(
+          `Successfully refunded tokenization charge for ${reference}`,
+        );
+      }
+    } catch (refundError) {
+      // We catch this silently so a refund network error doesn't break the successful subscription!
+      console.error('Refund Request Error:', refundError);
+    }
+
     return { success: true, message: 'Subscription started successfully!' };
   } catch (error: any) {
     console.error('Subscription Error:', error);
