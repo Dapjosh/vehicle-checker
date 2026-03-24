@@ -113,10 +113,12 @@ export default function InspectionForm({
   categories,
   drivers,
   vehicles,
+  officerName,
 }: {
   categories: InspectionCategory[];
   drivers: Driver[];
   vehicles: Vehicle[];
+  officerName: string;
 }) {
   const [isSaving, startSaveTransition] = useTransition();
   const [isFormSubmitted, setIsFormSubmitted] = useState(false);
@@ -424,7 +426,8 @@ export default function InspectionForm({
                         type='text'
                         placeholder='e.g., John Doe'
                         {...field}
-                        disabled={isFormDisabled}
+                        value={officerName || field.value}
+                        disabled={true}
                       />
                     </FormControl>
                     <FormMessage />

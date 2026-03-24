@@ -10,6 +10,8 @@ export default async function AddNewReports() {
   const client = await clerkClient();
   const user = await currentUser();
 
+  const name = user?.firstName + ' ' + user?.lastName;
+
   if (!orgId) {
     const memberships = await client.users.getOrganizationMembershipList({
       userId: userId!,
@@ -58,6 +60,7 @@ export default async function AddNewReports() {
               vehicles={vehicles.sort((a, b) =>
                 a.registration.localeCompare(b.registration),
               )}
+              officerName={name}
             />
           </div>
         </>

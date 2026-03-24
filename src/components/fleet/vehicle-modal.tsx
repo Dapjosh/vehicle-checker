@@ -27,7 +27,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Trash2, Loader2, History, Save, FileText } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Loader2,
+  History,
+  Save,
+  TruckIcon,
+  FileText,
+} from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -39,6 +47,9 @@ import type {
   ServiceRecord,
 } from '@/lib/definitions';
 import { v4 as uuidv4 } from 'uuid';
+import { uploadImageToR2Action } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { compressImage } from '@/lib/img-compression';
 
 interface VehicleModalProps {
   isOpen: boolean;
@@ -55,6 +66,8 @@ export function VehicleModal({
 }: VehicleModalProps) {
   const [formData, setFormData] = useState<Partial<Vehicle> | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
   // Maintenance Sub-state
   const [isAddingService, setIsAddingService] = useState(false);
@@ -74,13 +87,67 @@ export function VehicleModal({
   const handleSave = () => {
     if (!formData) return;
     startTransition(async () => {
-      formData.registration = formData.registration?.replaceAll(/[^a-zA-Z0-9]+/g, '').toUpperCase() || '';
+      formData.registration =
+        formData.registration?.replaceAll(/[^a-zA-Z0-9]+/g, '').toUpperCase() ||
+        '';
       await onSave(formData);
     });
   };
 
   const updateField = (field: keyof Vehicle, value: any) => {
     setFormData((prev) => ({ ...prev!, [field]: value }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    //ensure the file is an image
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select an image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    //ensure the file size is not more than 500kb
+    try {
+      const finalFile = await compressImage(file);
+      const payload = new FormData();
+
+      payload.append('file', finalFile);
+
+      const result = await uploadImageToR2Action(payload);
+
+      if (result.success && result.url) {
+        updateField('photoUrl', result.url);
+
+        toast({
+          variant: 'default',
+          title: 'Image Uploaded',
+          description: 'Photo successfully saved.',
+        });
+      } else {
+        toast({
+          title: 'Error uploading image',
+          description: result.error,
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      toast({
+        title: 'Error uploading image',
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleAddService = () => {
@@ -172,6 +239,34 @@ export function VehicleModal({
             {/* Specs Tab */}
             <TabsContent value='specs' className='space-y-4'>
               <div className='grid grid-cols-2 gap-4'>
+                <div className='col-span-2 flex items-center gap-4 p-4 border rounded-lg bg-gray-50/50'>
+                  <div className='relative h-16 w-16 shrink-0 rounded-lg border-2 border-white shadow-sm bg-white flex items-center justify-center overflow-hidden'>
+                    {isUploading && (
+                      <div className='absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm'>
+                        <Loader2 className='h-6 w-6 animate-spin text-primary' />
+                      </div>
+                    )}
+                    {formData.photoUrl ? (
+                      <img
+                        src={formData.photoUrl}
+                        alt='Vehicle'
+                        className='h-full w-full object-cover'
+                      />
+                    ) : (
+                      <TruckIcon className='h-6 w-6 text-gray-400' />
+                    )}
+                  </div>
+                  <div className='flex-1 space-y-1'>
+                    <Label>Vehicle Photo</Label>
+                    <Input
+                      type='file'
+                      accept='image/*'
+                      className='cursor-pointer bg-white'
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                    />
+                  </div>
+                </div>
                 <div className='space-y-2'>
                   <Label>Registration</Label>
                   <Input
@@ -248,7 +343,7 @@ export function VehicleModal({
                         },
                       }))
                     }
-                  /> 
+                  />
                 </div>
                 <div className='space-y-2'>
                   <Label>Status</Label>

@@ -1,6 +1,7 @@
 'use server';
 
 import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { revalidatePath } from 'next/cache';
 import {
   type InspectionCategory,
@@ -68,6 +69,15 @@ function formatVehicleRegistration(registration: string): string {
   if (!registration) return '';
   return registration.replace(/[\s-]+/g, '').toUpperCase();
 }
+
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
 
 export async function getDashboardStats() {
   const { userId, orgId } = await auth();
@@ -1124,6 +1134,52 @@ export async function searchFleetAction(
   } catch (error) {
     console.error(`Search for ${searchType} failed:`, error);
     return [];
+  }
+}
+
+export async function uploadImageToR2Action(formData: FormData) {
+  const { orgId } = await auth();
+  if (!orgId) return { success: false, error: 'Unauthorized' };
+
+  const file = formData.get('file') as File;
+  if (!file) return { success: false, error: 'No file provided' };
+
+  //check file size
+  if (file.size > 5 * 1024 * 1024) {
+    return { success: false, error: 'File size too large' };
+  }
+
+  //check file type
+  if (!file.type.startsWith('image/')) {
+    return { success: false, error: 'Invalid file type' };
+  }
+
+  try {
+    // Convert the File to a Uint8Array for the S3 client
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = new Uint8Array(arrayBuffer);
+
+    // Create a safe, unique filename organized by orgId
+    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '');
+    const fileName = `organizations/${orgId}/${uuidv4()}-${safeName}`;
+
+    // Upload to R2
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: fileName,
+        Body: buffer,
+        ContentType: file.type,
+      }),
+    );
+
+    // Construct the public URL (Make sure your R2 bucket has public access enabled!)
+    const publicUrl = `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${fileName}`;
+
+    return { success: true, url: publicUrl };
+  } catch (error: any) {
+    console.error('R2 Upload Error:', error);
+    return { success: false, error: 'Failed to upload image' };
   }
 }
 

@@ -18,10 +18,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Plus, Trash2, Loader2, Check, X, ImageIcon } from 'lucide-react';
 import type { Driver, TrainingRecord } from '@/lib/definitions';
 import { v4 as uuidv4 } from 'uuid';
-
+import { uploadImageToR2Action } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import { compressImage } from '@/lib/img-compression';
 interface DriverModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,7 +33,7 @@ interface DriverModalProps {
 }
 
 function capitalizeEachWord(str: string) {
-    return str.replace(/\b\w/g, char => char.toUpperCase());
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export function DriverModal({
@@ -42,7 +45,8 @@ export function DriverModal({
   const [formData, setFormData] = useState<Partial<Driver> | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  
+  const { toast } = useToast();
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     setFormData(driverData);
@@ -54,6 +58,58 @@ export function DriverModal({
     startTransition(async () => {
       await onSave(formData);
     });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    //ensure the file is an image
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select an image file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    //ensure the file size is not more than 500kb
+    try {
+      const finalFile = await compressImage(file);
+      const payload = new FormData();
+
+      payload.append('file', finalFile);
+
+      const result = await uploadImageToR2Action(payload);
+
+      if (result.success && result.url) {
+        updateField('photoUrl', result.url);
+
+        toast({
+          variant: 'default',
+          title: 'Image Uploaded',
+          description: 'Photo successfully saved.',
+        });
+      } else {
+        toast({
+          title: 'Error uploading image',
+          description: result.error,
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      toast({
+        title: 'Error uploading image',
+        description: (err as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const updateField = (field: keyof Driver, value: any) => {
@@ -95,6 +151,37 @@ export function DriverModal({
             {/* Personal Details */}
             <TabsContent value='details' className='space-y-4'>
               <div className='grid grid-cols-2 gap-4'>
+                <div className='col-span-2 flex items-center gap-4 p-4 border rounded-lg bg-gray-50/50'>
+                  <div className='relative h-16 w-16 shrink-0 rounded-full border-2 border-white shadow-sm overflow-hidden bg-white'>
+                    {isUploading && (
+                      <div className='absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm'>
+                        <Loader2 className='h-6 w-6 animate-spin text-primary' />
+                      </div>
+                    )}
+                    <Avatar className='h-full w-full rounded-none'>
+                      {formData.photoUrl ? (
+                        <AvatarImage
+                          src={formData.photoUrl}
+                          className='object-cover'
+                        />
+                      ) : (
+                        <AvatarFallback className='rounded-none bg-transparent'>
+                          <ImageIcon className='h-6 w-6 text-gray-400' />
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                  </div>
+                  <div className='flex-1 space-y-1'>
+                    <Label>Driver Photo</Label>
+                    <Input
+                      type='file'
+                      accept='image/*'
+                      className='cursor-pointer bg-white'
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                    />
+                  </div>
+                </div>
                 <div className='space-y-2'>
                   <Label>Full Name</Label>
                   <Input

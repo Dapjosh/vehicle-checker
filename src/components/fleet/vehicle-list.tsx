@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   Table,
   TableBody,
@@ -47,6 +48,7 @@ export function VehicleList({
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<Vehicle[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!search) {
@@ -97,6 +99,7 @@ export function VehicleList({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className='w-[80px]'>#</TableHead>
               <TableHead>Registration</TableHead>
               <TableHead>Type/Model</TableHead>
               <TableHead>VIN/Chassis</TableHead>
@@ -123,6 +126,24 @@ export function VehicleList({
                     key={vehicle.id}
                     ref={isLast ? lastElementRef : null}
                   >
+                    <TableCell>
+                      <div
+                        className={`h-10 w-10 shrink-0 rounded-md border bg-gray-50 flex items-center justify-center overflow-hidden ${vehicle.photoUrl ? 'cursor-pointer hover:opacity-80 transition-opacity ring-1 ring-transparent hover:ring-primary' : ''}`}
+                        onClick={() =>
+                          vehicle.photoUrl && setPreviewImage(vehicle.photoUrl)
+                        }
+                      >
+                        {vehicle.photoUrl ? (
+                          <img
+                            src={vehicle.photoUrl}
+                            alt={vehicle.registration}
+                            className='h-full w-full object-cover'
+                          />
+                        ) : (
+                          <Truck className='h-5 w-5 text-gray-400' />
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className='font-medium'>
                       {vehicle.registration}
                     </TableCell>
@@ -186,6 +207,22 @@ export function VehicleList({
           </TableBody>
         </Table>
       </div>
+
+      <Dialog
+        open={!!previewImage}
+        onOpenChange={(open) => !open && setPreviewImage(null)}
+      >
+        <DialogContent className='max-w-3xl bg-transparent border-none shadow-none p-0 flex justify-center items-center'>
+          <DialogTitle className='sr-only'>Vehicle Image Preview</DialogTitle>
+          {previewImage && (
+            <img
+              src={previewImage}
+              alt='Vehicle Preview'
+              className='w-full h-auto max-h-[85vh] object-contain rounded-md shadow-2xl'
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

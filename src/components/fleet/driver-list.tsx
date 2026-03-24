@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   Loader2,
   User,
@@ -39,6 +40,8 @@ export function DriverList({
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<Driver[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!search) {
@@ -100,17 +103,19 @@ export function DriverList({
                 ref={isLast ? lastElementRef : null}
                 className='p-4 flex items-center justify-between hover:bg-muted/40 transition-colors group'
               >
-                <div
-                  className='flex items-center gap-4 flex-grow cursor-pointer'
-                  onClick={() => onEdit(driver)}
-                >
-                  <Avatar className='h-10 w-10'>
-                    <AvatarImage src={driver.photoURL} />
+                <div className='flex items-center gap-4 flex-grow cursor-pointer'>
+                  <Avatar
+                    className={`w-10 ${driver.photoUrl ? 'cursor-pointer hover:opacity-80 transition-opacity ring-transparent hover:ring-primary' : ''}`}
+                    onClick={() =>
+                      driver.photoUrl && setPreviewImage(driver.photoUrl)
+                    }
+                  >
+                    <AvatarImage src={driver.photoUrl} />
                     <AvatarFallback>
                       {driver.name.substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div onClick={() => onEdit(driver)}>
                     <div className='font-semibold'>{driver.name}</div>
                     <div className='text-xs text-muted-foreground flex items-center gap-2 mt-1'>
                       <span>{driver.employeeId || 'No ID'}</span>
@@ -163,6 +168,22 @@ export function DriverList({
           </div>
         )}
       </div>
+
+      <Dialog
+        open={!!previewImage}
+        onOpenChange={(open) => !open && setPreviewImage(null)}
+      >
+        <DialogContent className='max-w-3xl bg-transparent border-none shadow-none p-0 flex justify-center items-center'>
+          <DialogTitle className='sr-only'>Driver Image Preview</DialogTitle>
+          {previewImage && (
+            <img
+              src={previewImage}
+              alt='Driver Preview'
+              className='w-full h-auto max-h-[85vh] object-contain rounded-md shadow-2xl'
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -15,10 +15,12 @@ export default function VehicleCheckForm({
   categories,
   drivers,
   vehicles,
+  officerName,
 }: {
   categories: InspectionCategory[];
   drivers: Driver[];
   vehicles: Vehicle[];
+  officerName: string;
 }) {
   // const [isSaving, startSaveTransition] = useTransition();
   // const [isFormSubmitted, setIsFormSubmitted] = useState(false);
@@ -31,6 +33,7 @@ export default function VehicleCheckForm({
         categories={categories}
         drivers={drivers}
         vehicles={vehicles}
+        officerName={officerName}
       />
     );
   }
