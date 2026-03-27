@@ -81,7 +81,7 @@ import { saveInspectionReport, searchFleetAction } from '@/app/actions';
 const generateFormSchema = (categories: InspectionCategory[]) => {
   const schemaFields: Record<string, z.ZodType<any, any, any>> = {
     vehicleRegistration: z.string().min(1, 'Please select a vehicle.'),
-    inspectingOfficer: z.string().min(1, 'Please select an inspector.'),
+    // inspectingOfficer: z.string().min(1, 'Please select an inspector.'),
     currentOdometer: z.coerce.number().min(1, 'Odometer reading is required.'),
     driverName: z.string().min(1, 'Please select a driver.'),
     finalVerdict: z.enum(['PASS', 'FAIL'], {
@@ -196,6 +196,7 @@ export default function InspectionForm({
 
   const onSubmit = (data: FormValues) => {
     startSaveTransition(async () => {
+      data.inspectingOfficer = officerName;
       const saveResult = await saveInspectionReport(data, categories);
       if (saveResult.success) {
         toast({
