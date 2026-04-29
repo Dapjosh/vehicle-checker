@@ -56,11 +56,13 @@ interface VehicleModalProps {
   onClose: () => void;
   vehicleData: Partial<Vehicle> | null;
   onSave: (vehicle: Partial<Vehicle>) => Promise<void>;
+  isOrgAdmin: boolean;
 }
 
 export function VehicleModal({
   isOpen,
   onClose,
+  isOrgAdmin,
   vehicleData,
   onSave,
 }: VehicleModalProps) {
@@ -261,15 +263,20 @@ export function VehicleModal({
                     <Input
                       type='file'
                       accept='image/*'
-                      className='cursor-pointer bg-white'
+                      className={
+                        isOrgAdmin
+                          ? 'cursor-pointer bg-white'
+                          : 'disabled cursor-not-allowed'
+                      }
                       onChange={handleImageUpload}
-                      disabled={isUploading}
+                      disabled={isUploading || !isOrgAdmin}
                     />
                   </div>
                 </div>
                 <div className='space-y-2'>
                   <Label>Registration</Label>
                   <Input
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.registration || ''}
                     onChange={(e) =>
                       updateField('registration', e.target.value)
@@ -280,9 +287,15 @@ export function VehicleModal({
                   <Label>Type</Label>
                   <Select
                     value={formData.type}
-                    onValueChange={(val) => updateField('type', val)}
+                    onValueChange={(val) =>
+                      isOrgAdmin && updateField('type', val)
+                    }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger
+                      className={
+                        isOrgAdmin ? '' : 'disabled cursor-not-allowed'
+                      }
+                    >
                       <SelectValue placeholder='Select type' />
                     </SelectTrigger>
                     <SelectContent>
@@ -296,6 +309,7 @@ export function VehicleModal({
                 <div className='space-y-2'>
                   <Label>Make</Label>
                   <Input
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.make || ''}
                     onChange={(e) => updateField('make', e.target.value)}
                   />
@@ -303,6 +317,7 @@ export function VehicleModal({
                 <div className='space-y-2'>
                   <Label>Model</Label>
                   <Input
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.model || ''}
                     onChange={(e) => updateField('model', e.target.value)}
                   />
@@ -310,6 +325,7 @@ export function VehicleModal({
                 <div className='space-y-2'>
                   <Label>VIN</Label>
                   <Input
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.vin || ''}
                     onChange={(e) => updateField('vin', e.target.value)}
                   />
@@ -317,6 +333,7 @@ export function VehicleModal({
                 <div className='space-y-2'>
                   <Label>Chassis</Label>
                   <Input
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.chassisNumber || ''}
                     onChange={(e) =>
                       updateField('chassisNumber', e.target.value)
@@ -333,6 +350,7 @@ export function VehicleModal({
                   <Label>Current Odometer</Label>
                   <Input
                     type='number'
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.maintenance?.currentOdometer || 0}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -351,7 +369,11 @@ export function VehicleModal({
                     value={formData.status}
                     onValueChange={(val) => updateField('status', val)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger
+                      className={
+                        isOrgAdmin ? '' : 'disabled cursor-not-allowed'
+                      }
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -367,6 +389,7 @@ export function VehicleModal({
                   <Label>Last Service Date</Label>
                   <Input
                     type='date'
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.maintenance?.lastServiceDate || ''}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -383,6 +406,7 @@ export function VehicleModal({
                   <Label>Next Service Date</Label>
                   <Input
                     type='date'
+                    className={isOrgAdmin ? '' : 'disabled cursor-not-allowed'}
                     value={formData.maintenance?.nextServiceDate || ''}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -403,7 +427,7 @@ export function VehicleModal({
                   <h3 className='font-semibold flex items-center gap-2 text-sm'>
                     <History className='h-4 w-4' /> Service History
                   </h3>
-                  {!isAddingService && (
+                  {!isAddingService && isOrgAdmin && (
                     <Button
                       size='sm'
                       variant='outline'
@@ -438,7 +462,11 @@ export function VehicleModal({
                             setNewService({ ...newService, serviceType: val })
                           }
                         >
-                          <SelectTrigger>
+                          <SelectTrigger
+                            className={
+                              isOrgAdmin ? '' : 'disabled cursor-not-allowed'
+                            }
+                          >
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -516,9 +544,11 @@ export function VehicleModal({
                       >
                         Cancel
                       </Button>
-                      <Button size='sm' onClick={handleAddService}>
-                        <Save className='h-4 w-4 mr-2' /> Save
-                      </Button>
+                      {isOrgAdmin && (
+                        <Button size='sm' onClick={handleAddService}>
+                          <Save className='h-4 w-4 mr-2' /> Save
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -555,14 +585,18 @@ export function VehicleModal({
                               <TableCell>{record.currentOdometer}</TableCell>
                               <TableCell>${record.serviceCost}</TableCell>
                               <TableCell>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  className='h-8 w-8 text-destructive'
-                                  onClick={() => handleDeleteService(record.id)}
-                                >
-                                  <Trash2 className='h-4 w-4' />
-                                </Button>
+                                {isOrgAdmin && (
+                                  <Button
+                                    variant='ghost'
+                                    size='icon'
+                                    className='h-8 w-8 text-destructive'
+                                    onClick={() =>
+                                      handleDeleteService(record.id)
+                                    }
+                                  >
+                                    <Trash2 className='h-4 w-4' />
+                                  </Button>
+                                )}
                               </TableCell>
                             </TableRow>
                           ))
@@ -577,23 +611,25 @@ export function VehicleModal({
             <TabsContent value='docs' className='space-y-4'>
               {/* Similar logic to previous implementation */}
               <div className='flex justify-end'>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  onClick={() => {
-                    const newDoc: VehicleDocument = {
-                      id: uuidv4(),
-                      type: 'Insurance',
-                      referenceNumber: '',
-                    };
-                    setFormData((prev) => ({
-                      ...prev!,
-                      documents: [...(prev?.documents || []), newDoc],
-                    }));
-                  }}
-                >
-                  <Plus className='h-4 w-4 mr-2' /> Add Document
-                </Button>
+                {isOrgAdmin && (
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    onClick={() => {
+                      const newDoc: VehicleDocument = {
+                        id: uuidv4(),
+                        type: 'Insurance',
+                        referenceNumber: '',
+                      };
+                      setFormData((prev) => ({
+                        ...prev!,
+                        documents: [...(prev?.documents || []), newDoc],
+                      }));
+                    }}
+                  >
+                    <Plus className='h-4 w-4 mr-2' /> Add Document
+                  </Button>
+                )}
               </div>
               <ScrollArea className='h-[200px]'>
                 {formData.documents?.map((doc, index) => (
@@ -664,10 +700,12 @@ export function VehicleModal({
         </Tabs>
 
         <DialogFooter>
-          <Button onClick={handleSave} disabled={isPending}>
-            {isPending && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            Save Vehicle
-          </Button>
+          {isOrgAdmin && (
+            <Button onClick={handleSave} disabled={isPending}>
+              {isPending && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              Save Vehicle
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

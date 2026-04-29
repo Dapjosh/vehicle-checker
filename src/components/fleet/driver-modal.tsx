@@ -30,6 +30,7 @@ interface DriverModalProps {
   onClose: () => void;
   driverData: Partial<Driver> | null;
   onSave: (driver: Partial<Driver>) => Promise<void>;
+  isOrgAdmin: boolean;
 }
 
 function capitalizeEachWord(str: string) {
@@ -39,6 +40,7 @@ function capitalizeEachWord(str: string) {
 export function DriverModal({
   isOpen,
   onClose,
+  isOrgAdmin,
   driverData,
   onSave,
 }: DriverModalProps) {
@@ -176,9 +178,13 @@ export function DriverModal({
                     <Input
                       type='file'
                       accept='image/*'
-                      className='cursor-pointer bg-white'
+                      className={
+                        isOrgAdmin
+                          ? 'cursor-pointer bg-white'
+                          : 'disabled cursor-not-allowed'
+                      }
                       onChange={handleImageUpload}
-                      disabled={isUploading}
+                      disabled={isUploading || !isOrgAdmin}
                     />
                   </div>
                 </div>
@@ -186,6 +192,11 @@ export function DriverModal({
                   <Label>Full Name</Label>
                   <Input
                     value={formData.name || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) => updateField('name', e.target.value)}
                   />
                 </div>
@@ -193,6 +204,11 @@ export function DriverModal({
                   <Label>Email</Label>
                   <Input
                     value={formData.email || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) => updateField('email', e.target.value)}
                   />
                 </div>
@@ -200,12 +216,22 @@ export function DriverModal({
                   <Label>Phone</Label>
                   <Input
                     value={formData.phone || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) => updateField('phone', e.target.value)}
                   />
                 </div>
                 <div className='space-y-2'>
                   <Label>Rating (1-5)</Label>
                   <Input
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     type='number'
                     min='1'
                     max='5'
@@ -219,6 +245,11 @@ export function DriverModal({
                   <Label>Date Hired</Label>
                   <Input
                     type='date'
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     value={formData.dateHired || ''}
                     onChange={(e) => updateField('dateHired', e.target.value)}
                   />
@@ -227,6 +258,11 @@ export function DriverModal({
                   <Label>Employee ID</Label>
                   <Input
                     value={formData.employeeId || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) => updateField('employeeId', e.target.value)}
                   />
                 </div>
@@ -236,7 +272,13 @@ export function DriverModal({
                     value={formData.status}
                     onValueChange={(val) => updateField('status', val)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger
+                      className={
+                        isOrgAdmin
+                          ? 'cursor-pointer bg-white'
+                          : 'disabled cursor-not-allowed'
+                      }
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -256,6 +298,11 @@ export function DriverModal({
                   <Label>License Number</Label>
                   <Input
                     value={formData.license?.number || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) => updateLicense('number', e.target.value)}
                   />
                 </div>
@@ -263,6 +310,11 @@ export function DriverModal({
                   <Label>Issuing State</Label>
                   <Input
                     value={formData.license?.issuingState || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) =>
                       updateLicense('issuingState', e.target.value)
                     }
@@ -273,6 +325,11 @@ export function DriverModal({
                   <Input
                     type='date'
                     value={formData.license?.expiryDate || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) =>
                       updateLicense('expiryDate', e.target.value)
                     }
@@ -282,6 +339,11 @@ export function DriverModal({
                   <Label>Class</Label>
                   <Input
                     value={formData.license?.class || ''}
+                    className={
+                      isOrgAdmin
+                        ? 'cursor-pointer bg-white'
+                        : 'disabled cursor-not-allowed'
+                    }
                     onChange={(e) => updateLicense('class', e.target.value)}
                   />
                 </div>
@@ -291,24 +353,26 @@ export function DriverModal({
             {/* Training Records */}
             <TabsContent value='training' className='space-y-4'>
               <div className='flex justify-end'>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  onClick={() => {
-                    const newTraining: TrainingRecord = {
-                      id: uuidv4(),
-                      type: 'Fire Safety',
-                      issueDate: '',
-                      expiryDate: '',
-                    };
-                    setFormData((prev) => ({
-                      ...prev!,
-                      trainings: [...(prev?.trainings || []), newTraining],
-                    }));
-                  }}
-                >
-                  <Plus className='h-4 w-4 mr-2' /> Add Training
-                </Button>
+                {isOrgAdmin && (
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    onClick={() => {
+                      const newTraining: TrainingRecord = {
+                        id: uuidv4(),
+                        type: 'Fire Safety',
+                        issueDate: '',
+                        expiryDate: '',
+                      };
+                      setFormData((prev) => ({
+                        ...prev!,
+                        trainings: [...(prev?.trainings || []), newTraining],
+                      }));
+                    }}
+                  >
+                    <Plus className='h-4 w-4 mr-2' /> Add Training
+                  </Button>
+                )}
               </div>
 
               <ScrollArea className='h-[200px]'>
@@ -360,22 +424,24 @@ export function DriverModal({
                         }}
                       />
                     </div>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='text-destructive h-8 w-8 mb-0.5'
-                      onClick={() => {
-                        const newTrainings = formData.trainings?.filter(
-                          (t) => t.id !== training.id,
-                        );
-                        setFormData((prev) => ({
-                          ...prev!,
-                          trainings: newTrainings,
-                        }));
-                      }}
-                    >
-                      <Trash2 className='h-4 w-4' />
-                    </Button>
+                    {isOrgAdmin && (
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='text-destructive h-8 w-8 mb-0.5'
+                        onClick={() => {
+                          const newTrainings = formData.trainings?.filter(
+                            (t) => t.id !== training.id,
+                          );
+                          setFormData((prev) => ({
+                            ...prev!,
+                            trainings: newTrainings,
+                          }));
+                        }}
+                      >
+                        <Trash2 className='h-4 w-4' />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </ScrollArea>
@@ -384,10 +450,12 @@ export function DriverModal({
         </Tabs>
 
         <DialogFooter>
-          <Button onClick={handleSave} disabled={isPending}>
-            {isPending && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-            Save Driver
-          </Button>
+          {isOrgAdmin && (
+            <Button onClick={handleSave} disabled={isPending}>
+              {isPending && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              Save Driver
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

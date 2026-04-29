@@ -795,8 +795,12 @@ export async function getDrivers(
 }
 
 export async function saveDriverAction(driver: Partial<Driver>) {
-  const { orgId } = await auth();
+  const { orgId, orgRole } = await auth();
   if (!orgId) return { success: false, error: 'Not authenticated' };
+
+  if (orgRole !== 'org:admin') {
+    return { success: false, error: 'Unauthorized' };
+  }
 
   try {
     const driversRef = adminDb.collection(`organizations/${orgId}/drivers`);
@@ -876,8 +880,12 @@ export async function saveDriverAction(driver: Partial<Driver>) {
 }
 
 export async function deleteDriverAction(driverId: string) {
-  const { orgId } = await auth();
+  const { orgId, orgRole } = await auth();
   if (!orgId) return { success: false, error: 'Not authenticated' };
+
+  if (orgRole !== 'org:admin') {
+    return { success: false, error: 'Unauthorized' };
+  }
 
   try {
     await adminDb.doc(`organizations/${orgId}/drivers/${driverId}`).delete();
@@ -917,8 +925,12 @@ export async function getVehicles(
 }
 
 export async function saveVehicleAction(vehicle: Partial<Vehicle>) {
-  const { orgId } = await auth();
+  const { orgId, orgRole } = await auth();
   if (!orgId) return { success: false, error: 'Not authenticated' };
+
+  if (orgRole !== 'org:admin') {
+    return { success: false, error: 'Unauthorized' };
+  }
 
   try {
     const vehiclesRef = adminDb.collection(`organizations/${orgId}/vehicles`);
@@ -965,8 +977,12 @@ export async function saveVehicleAction(vehicle: Partial<Vehicle>) {
 }
 
 export async function deleteVehicleAction(vehicleId: string) {
-  const { orgId } = await auth();
+  const { orgId, orgRole } = await auth();
   if (!orgId) return { success: false, error: 'Not authenticated' };
+
+  if (orgRole !== 'org:admin') {
+    return { success: false, error: 'Unauthorized' };
+  }
 
   try {
     await adminDb.doc(`organizations/${orgId}/vehicles/${vehicleId}`).delete();

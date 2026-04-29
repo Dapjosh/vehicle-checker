@@ -32,12 +32,14 @@ interface VehicleListProps {
   onEdit: (vehicle: Vehicle) => void;
   onDelete: (id: string) => void;
   onAddNew: () => void;
+  isOrgAdmin: boolean;
 }
 
 export function VehicleList({
   vehicles,
   loadingMore,
   hasMore,
+  isOrgAdmin,
   onLoadMore,
   onEdit,
   onDelete,
@@ -75,10 +77,13 @@ export function VehicleList({
             Track registration, maintenance, and documents.
           </p>
         </div>
-        <Button onClick={onAddNew} className='self-start sm:self-center'>
-          <Plus className='mr-2 h-5 w-5' />
-          Add Vehicle
-        </Button>
+
+        {isOrgAdmin && (
+          <Button onClick={onAddNew} className='self-start sm:self-center'>
+            <Plus className='mr-2 h-5 w-5' />
+            Add Vehicle
+          </Button>
+        )}
       </div>
 
       <div className='relative w-full max-w-md'>
@@ -184,14 +189,16 @@ export function VehicleList({
                       >
                         <Edit className='h-4 w-4' />
                       </Button>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='text-destructive hover:bg-destructive hover:text-white'
-                        onClick={() => onDelete(vehicle.id)}
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </Button>
+                      {isOrgAdmin && (
+                        <Button
+                          variant='ghost'
+                          size='sm'
+                          className='text-destructive hover:bg-destructive hover:text-white'
+                          onClick={() => onDelete(vehicle.id)}
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

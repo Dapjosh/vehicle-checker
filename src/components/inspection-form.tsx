@@ -493,7 +493,7 @@ export default function InspectionForm({
                                           <CheckCircle className='mb-1 h-5 w-5' />
                                           Ok
                                         </Button>
-                                        <Button
+                                        {/* <Button
                                           type='button'
                                           onClick={() =>
                                             field.onChange('Needs Repair')
@@ -508,7 +508,7 @@ export default function InspectionForm({
                                         >
                                           <Wrench className='mb-1 h-5 w-5' />
                                           Needs Repair
-                                        </Button>
+                                        </Button> */}
                                         <Button
                                           type='button'
                                           onClick={() =>
@@ -519,7 +519,7 @@ export default function InspectionForm({
                                               ? 'destructive'
                                               : 'outline'
                                           }
-                                          className='col-span-1 h-full flex-col p-3 text-sm font-medium'
+                                          className='col-span-2 w-full h-full flex-col p-3 text-sm font-medium'
                                           disabled={isFormDisabled}
                                         >
                                           <XCircle className='mb-1 h-5 w-5' />

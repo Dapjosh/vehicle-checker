@@ -28,10 +28,10 @@ export default async function FleetPage() {
   const isSuperAdmin = user.publicMetadata?.role === 'super_admin';
   const isOrgAdmin = orgRole === 'org:admin';
 
-  if (!isSuperAdmin && !isOrgAdmin) {
-    // If not, send them to the dashboard
-    redirect('/');
-  }
+  // if (!isSuperAdmin && !isOrgAdmin) {
+  //   // If not, send them to the dashboard
+  //   redirect('/');
+  // }
 
   let drivers: any[] = [];
   let vehicles: any[] = [];
@@ -60,6 +60,7 @@ export default async function FleetPage() {
           <FleetManager
             initialDrivers={drivers}
             initialVehicles={vehicles}
+            isOrgAdmin={isOrgAdmin}
             orgId={orgId}
             loadMoreDriversAction={getDrivers}
             loadMoreVehiclesAction={getVehicles}

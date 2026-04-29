@@ -19,6 +19,7 @@ import { VehicleModal } from './vehicle-modal';
 interface FleetManagerProps {
   initialDrivers: Driver[];
   initialVehicles: Vehicle[];
+  isOrgAdmin: boolean;
   orgId: string;
   loadMoreDriversAction: (
     limit: number,
@@ -33,6 +34,7 @@ interface FleetManagerProps {
 export default function FleetManager({
   initialDrivers,
   initialVehicles,
+  isOrgAdmin,
   orgId,
   loadMoreDriversAction,
   loadMoreVehiclesAction,
@@ -225,6 +227,7 @@ export default function FleetManager({
         <TabsContent value='drivers' className='space-y-4 pt-4'>
           <DriverList
             drivers={drivers}
+            isOrgAdmin={isOrgAdmin}
             loadingMore={loadingMoreDrivers}
             hasMore={hasMoreDrivers}
             onLoadMore={loadMoreDrivers}
@@ -237,6 +240,7 @@ export default function FleetManager({
         <TabsContent value='vehicles' className='space-y-4 pt-4'>
           <VehicleList
             vehicles={vehicles}
+            isOrgAdmin={isOrgAdmin}
             loadingMore={loadingMoreVehicles}
             hasMore={hasMoreVehicles}
             onLoadMore={loadMoreVehicles}
@@ -249,6 +253,7 @@ export default function FleetManager({
 
       <DriverModal
         isOpen={driverModalOpen}
+        isOrgAdmin={isOrgAdmin}
         onClose={() => setDriverModalOpen(false)}
         driverData={editingDriver}
         onSave={handleSaveDriver}
@@ -256,6 +261,7 @@ export default function FleetManager({
 
       <VehicleModal
         isOpen={vehicleModalOpen}
+        isOrgAdmin={isOrgAdmin}
         onClose={() => setVehicleModalOpen(false)}
         vehicleData={editingVehicle}
         onSave={handleSaveVehicle}
