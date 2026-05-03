@@ -146,9 +146,8 @@ export default function PricingPage() {
                 )}
               </Button>
               <p className='mt-4 text-xs text-center text-muted-foreground w-full'>
-                You will be charged a refundable ₦50 fee to verify your card.
-                The subscription fee of ₦10,000 will be charged automatically in
-                30 days.
+                {`You will be charged a refundable ₦50 fee to verify your card.
+                The subscription fee of ${!isAnnual ? '₦10,000' : '₦100,000'} will be charged automatically in ${!isAnnual ? '30 days' : 'a year'}.`}
               </p>
             </CardFooter>
           </Card>
